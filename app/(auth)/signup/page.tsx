@@ -221,7 +221,7 @@ export default function SignupPage() {
       </div>
 
       {/* Google */}
-      <button className="auth-btn-google" type="button" onClick={signInWithGoogle}>
+      <button className="auth-btn-google" type="button" onClick={async () => { const r = await signInWithGoogle(); if (r.error) setError(r.error); }}>
         <GoogleIcon />
         Continuer avec Google
       </button>

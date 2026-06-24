@@ -20,6 +20,7 @@ interface AddTransactionFormProps {
   onCancel: () => void;
   categories: { value: string; label: string }[];
   initialData?: Partial<TransactionData>;
+  envelopeRemaining?: Record<string, number>;
 }
 
 const incomeTypes = [
@@ -36,6 +37,7 @@ export default function AddTransactionForm({
   onCancel,
   categories,
   initialData,
+  envelopeRemaining,
 }: AddTransactionFormProps) {
   const [label, setLabel] = useState(initialData?.label ?? "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
@@ -86,6 +88,24 @@ export default function AddTransactionForm({
         options={categories}
         placeholder="Sélectionner"
       />
+
+      {type === "expense" && envelopeRemaining && category && envelopeRemaining[category] !== undefined && (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+          envelopeRemaining[category] <= 0
+            ? "bg-error/10 text-error"
+            : parseFloat(amount) > envelopeRemaining[category]
+            ? "bg-error/10 text-error"
+            : "bg-success/10 text-success"
+        }`}>
+          <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
+          <span>
+            Reste disponible : <strong>{envelopeRemaining[category].toFixed(2)}</strong>
+            {parseFloat(amount) > envelopeRemaining[category] && parseFloat(amount) > 0 && (
+              <> — Dépassement de {(parseFloat(amount) - envelopeRemaining[category]).toFixed(2)}</>
+            )}
+          </span>
+        </div>
+      )}
 
       {type === "income" && (
         <Select

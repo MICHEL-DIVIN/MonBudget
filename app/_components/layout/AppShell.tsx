@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
@@ -8,14 +8,10 @@ import FAB from "./FAB";
 import BottomSheet from "@/app/_components/ui/BottomSheet";
 import AddTransactionForm from "@/app/_components/budget/AddTransactionForm";
 import { useOfflineData } from "@/lib/offline/hooks";
+import { filterByMonth } from "@/lib/utils/calculations";
 import { useToast } from "@/app/_components/ui/Toast";
 import { useUserId } from "@/lib/auth/provider";
-import type { Depense, Revenu } from "@/lib/supabase/types";
-
-const expenseCategories = [
-  { value: "fixe", label: "Dépense fixe" },
-  { value: "variable", label: "Dépense variable" },
-];
+import type { Depense, Revenu, Envelope } from "@/lib/supabase/types";
 
 const incomeCategories = [
   { value: "principal", label: "Revenu principal" },
@@ -25,17 +21,48 @@ const incomeCategories = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const userId = useUserId();
   const [showForm, setShowForm] = useState<"expense" | "income" | null>(null);
-  const { addItem: addDepense } = useOfflineData<Depense>("depenses");
+  const { data: allDepenses, addItem: addDepense } = useOfflineData<Depense>("depenses");
   const { addItem: addRevenu } = useOfflineData<Revenu>("revenus");
+  const { data: envelopes } = useOfflineData<Envelope>("envelopes");
   const { toast } = useToast();
 
+  const now = new Date();
+  const monthDepenses = useMemo(() => filterByMonth(allDepenses, now.getMonth(), now.getFullYear()) as Depense[], [allDepenses]);
+
+  const envelopeRemaining = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const env of envelopes) {
+      const spent = monthDepenses.filter((d) => d.envelope_id === env.id).reduce((s, d) => s + Number(d.amount), 0);
+      map[env.id] = env.budgeted - spent;
+    }
+    return map;
+  }, [envelopes, monthDepenses]);
+
+  const expenseCategories = useMemo(() => [
+    { value: "fixe", label: "Dépense fixe" },
+    { value: "variable", label: "Dépense variable" },
+    ...envelopes.map((e) => ({ value: e.id, label: `${e.name}` })),
+  ], [envelopes]);
+
   async function handleAddExpense(data: { label: string; amount: number; category: string; date: string; recurring: boolean }) {
+    const isEnvelope = envelopes.some((e) => e.id === data.category);
+
+    if (isEnvelope) {
+      const env = envelopes.find((e) => e.id === data.category)!;
+      const spent = monthDepenses.filter((d) => d.envelope_id === env.id).reduce((s, d) => s + Number(d.amount), 0);
+      const remaining = env.budgeted - spent;
+      if (data.amount > remaining) {
+        toast(`Montant trop élevé pour "${env.name}". Reste : ${remaining.toFixed(2)}`, "error");
+        return;
+      }
+    }
+
     await addDepense({
       user_id: userId,
       label: data.label,
       amount: data.amount,
-      category: data.category as "fixe" | "variable",
-      envelope_id: null,
+      category: isEnvelope ? "variable" : (data.category as "fixe" | "variable"),
+      envelope_id: isEnvelope ? data.category : null,
       date: data.date,
       recurring: data.recurring,
       synced_at: null,
@@ -77,7 +104,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
 
       <BottomSheet isOpen={showForm === "expense"} onClose={() => setShowForm(null)} title="Nouvelle dépense">
-        <AddTransactionForm type="expense" onSubmit={handleAddExpense} onCancel={() => setShowForm(null)} categories={expenseCategories} />
+        <AddTransactionForm type="expense" onSubmit={handleAddExpense} onCancel={() => setShowForm(null)} categories={expenseCategories} envelopeRemaining={envelopeRemaining} />
       </BottomSheet>
 
       <BottomSheet isOpen={showForm === "income"} onClose={() => setShowForm(null)} title="Nouveau revenu">

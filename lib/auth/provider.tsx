@@ -14,7 +14,7 @@ interface AuthContextValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -24,7 +24,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
-  signInWithGoogle: async () => {},
+  signInWithGoogle: async () => ({ error: null }),
   signOut: async () => {},
 });
 
@@ -135,14 +135,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({
+  const signInWithGoogle = useCallback(async (): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/dashboard`,
         queryParams: { prompt: "select_account" },
       },
     });
+    if (error) return { error: "Connexion Google non disponible pour le moment." };
+    return { error: null };
   }, []);
 
   return (

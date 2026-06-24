@@ -56,6 +56,12 @@ export function useOfflineData<T extends { id: string }>(storeName: string) {
 
   const addItem = useCallback(
     async (item: Omit<T, "id" | "created_at" | "updated_at">) => {
+      const rec = item as Record<string, unknown>;
+      if ("amount" in rec && (typeof rec.amount !== "number" || rec.amount <= 0)) return null;
+      if ("budgeted" in rec && (typeof rec.budgeted !== "number" || rec.budgeted < 0)) return null;
+      if ("target_amount" in rec && (typeof rec.target_amount !== "number" || rec.target_amount < 0)) return null;
+      if ("current_amount" in rec && (typeof rec.current_amount !== "number" || rec.current_amount < 0)) return null;
+
       const db = await getDB();
       const now = new Date().toISOString();
       const newItem = {
@@ -79,6 +85,12 @@ export function useOfflineData<T extends { id: string }>(storeName: string) {
 
   const updateItem = useCallback(
     async (id: string, updates: Partial<T>) => {
+      const upd = updates as Record<string, unknown>;
+      if ("amount" in upd && (typeof upd.amount !== "number" || upd.amount <= 0)) return;
+      if ("budgeted" in upd && (typeof upd.budgeted !== "number" || upd.budgeted < 0)) return;
+      if ("target_amount" in upd && (typeof upd.target_amount !== "number" || upd.target_amount < 0)) return;
+      if ("current_amount" in upd && (typeof upd.current_amount !== "number" || upd.current_amount < 0)) return;
+
       const db = await getDB();
       const existing = await db.get(storeName as unknown as never, id);
       if (!existing) return;

@@ -89,11 +89,41 @@ export default function DepensesPage() {
     ...envelopes.map((e) => ({ value: e.id, label: `Enveloppe: ${e.name}` })),
   ];
 
+  const envelopeRemaining = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const env of envelopes) {
+      const spent = monthDepenses
+        .filter((d) => d.envelope_id === env.id && d.id !== editingId)
+        .reduce((s, d) => s + Number(d.amount), 0);
+      map[env.id] = env.budgeted - spent;
+    }
+    return map;
+  }, [envelopes, monthDepenses, editingId]);
+
   const editingDepense = editingId ? monthDepenses.find(d => d.id === editingId) : null;
 
+  function checkEnvelopeLimit(envelopeId: string, amount: number, excludeId?: string): { ok: boolean; remaining: number; envName: string } {
+    const env = envelopes.find((e) => e.id === envelopeId);
+    if (!env) return { ok: true, remaining: 0, envName: "" };
+    const spent = monthDepenses
+      .filter((d) => d.envelope_id === envelopeId && d.id !== excludeId)
+      .reduce((s, d) => s + Number(d.amount), 0);
+    const remaining = env.budgeted - spent;
+    return { ok: amount <= remaining, remaining, envName: env.name };
+  }
+
   async function handleSubmitDepense(data: { label: string; amount: number; category: string; date: string; recurring: boolean; type?: string }) {
+    const isEnvelope = envelopes.some((e) => e.id === data.category);
+
+    if (isEnvelope) {
+      const check = checkEnvelopeLimit(data.category, data.amount, editingId ?? undefined);
+      if (!check.ok) {
+        toast(`Montant trop élevé pour "${check.envName}". Reste disponible : ${check.remaining.toFixed(2)}`, "error");
+        return;
+      }
+    }
+
     if (editingId) {
-      const isEnvelope = envelopes.some((e) => e.id === data.category);
       await updateItem(editingId, {
         label: data.label,
         amount: data.amount,
@@ -104,7 +134,6 @@ export default function DepensesPage() {
       });
       setEditingId(null);
     } else {
-      const isEnvelope = envelopes.some((e) => e.id === data.category);
       await addItem({
         user_id: userId,
         label: data.label,
@@ -221,12 +250,12 @@ export default function DepensesPage() {
 
       <div className="hidden md:block">
         <Modal isOpen={showAddForm} onClose={() => { setShowAddForm(false); setEditingId(null); }} title={editingId ? "Modifier une dépense" : "Ajouter une dépense"}>
-          <AddTransactionForm type="expense" onSubmit={handleSubmitDepense} onCancel={() => { setShowAddForm(false); setEditingId(null); }} categories={expenseCategories} initialData={editingDepense ? { label: editingDepense.label, amount: editingDepense.amount, category: editingDepense.envelope_id || editingDepense.category, date: editingDepense.date, recurring: editingDepense.recurring } : undefined} />
+          <AddTransactionForm type="expense" onSubmit={handleSubmitDepense} onCancel={() => { setShowAddForm(false); setEditingId(null); }} categories={expenseCategories} envelopeRemaining={envelopeRemaining} initialData={editingDepense ? { label: editingDepense.label, amount: editingDepense.amount, category: editingDepense.envelope_id || editingDepense.category, date: editingDepense.date, recurring: editingDepense.recurring } : undefined} />
         </Modal>
       </div>
       <div className="md:hidden">
         <BottomSheet isOpen={showAddForm} onClose={() => { setShowAddForm(false); setEditingId(null); }} title={editingId ? "Modifier une dépense" : "Ajouter une dépense"}>
-          <AddTransactionForm type="expense" onSubmit={handleSubmitDepense} onCancel={() => { setShowAddForm(false); setEditingId(null); }} categories={expenseCategories} initialData={editingDepense ? { label: editingDepense.label, amount: editingDepense.amount, category: editingDepense.envelope_id || editingDepense.category, date: editingDepense.date, recurring: editingDepense.recurring } : undefined} />
+          <AddTransactionForm type="expense" onSubmit={handleSubmitDepense} onCancel={() => { setShowAddForm(false); setEditingId(null); }} categories={expenseCategories} envelopeRemaining={envelopeRemaining} initialData={editingDepense ? { label: editingDepense.label, amount: editingDepense.amount, category: editingDepense.envelope_id || editingDepense.category, date: editingDepense.date, recurring: editingDepense.recurring } : undefined} />
         </BottomSheet>
       </div>
 

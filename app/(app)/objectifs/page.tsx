@@ -103,7 +103,7 @@ export default function ObjectifsPage() {
     const obj = objectifs.find((o) => o.id === fundsTargetId);
     if (!obj) return;
 
-    const newAmount = Number(obj.current_amount) + amount;
+    const newAmount = Math.min(Number(obj.current_amount) + amount, Number(obj.target_amount));
     await updateItem(fundsTargetId, { current_amount: newAmount });
 
     if (newAmount >= Number(obj.target_amount) && Number(obj.current_amount) < Number(obj.target_amount)) {

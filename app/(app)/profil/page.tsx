@@ -244,13 +244,18 @@ export default function ProfilPage() {
   }
 
   async function handleImportCSV(rows: Array<{ label: string; amount: number; category: string; date: string; type: "revenu" | "depense" }>) {
+    let imported = 0;
+    let skipped = 0;
     for (const row of rows) {
+      if (!row.label || !row.amount || row.amount <= 0 || !row.date) { skipped++; continue; }
       if (row.type === "revenu") {
-        await addRevenu({ user_id: userId, label: row.label, amount: row.amount, category: "secondaire" as const, type: "autre", date: row.date, recurring: false, synced_at: null });
+        await addRevenu({ user_id: userId, label: row.label, amount: Math.abs(row.amount), category: "secondaire" as const, type: "autre", date: row.date, recurring: false, synced_at: null });
       } else {
-        await addDepense({ user_id: userId, label: row.label, amount: row.amount, category: "variable" as const, envelope_id: null, date: row.date, recurring: false, synced_at: null });
+        await addDepense({ user_id: userId, label: row.label, amount: Math.abs(row.amount), category: "variable" as const, envelope_id: null, date: row.date, recurring: false, synced_at: null });
       }
+      imported++;
     }
+    toast(`${imported} entrée(s) importée(s)${skipped > 0 ? `, ${skipped} ignorée(s)` : ""}`, "success");
   }
 
   const displayName = profile ? profile.full_name : "Utilisateur";

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import Icon from "@/app/_components/ui/Icon";
 import DonutChart from "@/app/_components/charts/DonutChart";
 import TrendChart from "@/app/_components/charts/TrendChart";
@@ -54,15 +53,8 @@ function groupByDate(txs: { id: string; label: string; amount: number; sortDate:
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [month, setMonth] = useState(IM);
   const [year, setYear] = useState(IY);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("monbudget-onboarded")) {
-      router.replace("/onboarding");
-    }
-  }, [router]);
 
   const { data: allDep, loading: l1 } = useOfflineData<Depense>("depenses");
   const { data: envs, loading: l2 } = useOfflineData<Envelope>("envelopes");

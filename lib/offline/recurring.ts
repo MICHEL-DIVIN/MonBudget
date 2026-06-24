@@ -15,8 +15,8 @@ export async function generateRecurringTransactions(): Promise<void> {
   ) as (Revenu & { _dirty?: boolean; _deleted?: boolean })[];
 
   for (const template of recurringRevenus) {
+    if (Number(template.amount) <= 0) continue;
     const templateDate = new Date(template.date);
-    // Don't generate if template is from the future
     if (templateDate > now) continue;
     // Don't re-generate for the template's own month
     if (templateDate.getMonth() === currentMonth && templateDate.getFullYear() === currentYear) continue;
@@ -59,6 +59,7 @@ export async function generateRecurringTransactions(): Promise<void> {
   ) as (Depense & { _dirty?: boolean; _deleted?: boolean })[];
 
   for (const template of recurringDepenses) {
+    if (Number(template.amount) <= 0) continue;
     const templateDate = new Date(template.date);
     if (templateDate > now) continue;
     if (templateDate.getMonth() === currentMonth && templateDate.getFullYear() === currentYear) continue;
