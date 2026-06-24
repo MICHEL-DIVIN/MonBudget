@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#004ac6"/>
+  <g transform="translate(256,230)" text-anchor="middle" fill="white" font-family="Inter,system-ui,sans-serif">
+    <text font-size="120" font-weight="800" dy="0">MB</text>
+    <text font-size="36" font-weight="500" dy="56" opacity="0.85">Budget</text>
+  </g>
+</svg>

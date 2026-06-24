@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+
+  /* Core palette */
+  --color-primary: #8b5cf6;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #7c3aed;
+  --color-on-primary-container: #ffffff;
+  --color-primary-fixed: #2a1f4e;
+  --color-primary-fixed-dim: #c4b5fd;
+  --color-inverse-primary: #a78bfa;
+  --color-secondary: #6366f1;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #4f46e5;
+  --color-secondary-fixed: #1e1b4b;
+  --color-tertiary: #f59e0b;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #d97706;
+  --color-tertiary-fixed: #451a03;
+  --color-error: #ef4444;
+  --color-on-error: #ffffff;
+  --color-error-container: #3b1114;
+  --color-on-error-container: #fca5a5;
+
+  /* Dark surfaces (DEFAULT) */
+  --color-background: #0a0a0f;
+  --color-on-background: #f0f0f4;
+  --color-surface: #0a0a0f;
+  --color-surface-dim: #060608;
+  --color-surface-bright: #1a1a24;
+  --color-surface-variant: #1e1e2a;
+  --color-on-surface: #f0f0f4;
+  --color-on-surface-variant: #6b6b80;
+  --color-surface-container-lowest: #0e0e14;
+  --color-surface-container-low: #13131b;
+  --color-surface-container: #18181f;
+  --color-surface-container-high: #1e1e28;
+  --color-surface-container-highest: #252530;
+  --color-surface-tint: #8b5cf6;
+  --color-inverse-surface: #f0f0f4;
+  --color-inverse-on-surface: #0a0a0f;
+  --color-outline: #3a3a4a;
+  --color-outline-variant: #2a2a36;
+
+  /* Category colors */
+  --color-env-green: #22c55e;
+  --color-env-pink: #ec4899;
+  --color-env-blue: #3b82f6;
+  --color-env-yellow: #eab308;
+  --color-env-purple: #8b5cf6;
+  --color-env-orange: #f97316;
+
+  /* Status */
+  --color-success: #22c55e;
+  --color-success-light: #052e16;
+  --color-warning: #f59e0b;
+  --color-warning-light: #451a03;
+  --color-chart-blue: #3b82f6;
+  --color-chart-green: #22c55e;
+  --color-chart-orange: #f97316;
+  --color-chart-yellow: #eab308;
+
+  /* Spacing */
+  --spacing-base: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-gutter: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-card-hover: 0 0 0 1px rgba(139,92,246,0.3);
+  --shadow-nav: none;
+  --shadow-sidebar: 1px 0 0 0 rgba(255,255,255,0.06);
+  --shadow-elevated: 0 16px 48px -8px rgba(0,0,0,0.5);
+}
+
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-up { animation: slideUp 0.3s ease-out both; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out both; }
+
+/* ── Auth pages ── */
+.auth-screen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  background: #0a0a0f !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 40px 24px !important;
+  box-sizing: border-box !important;
+  z-index: 50;
+}
+
+.auth-card {
+  width: 100% !important;
+  max-width: 400px !important;
+  box-sizing: border-box !important;
+}
+
+.auth-input {
+  display: block !important;
+  width: 100% !important;
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+  border: 1px solid #2a2a36 !important;
+  background: #1e1e28 !important;
+  color: #f0f0f4 !important;
+  font-size: 15px !important;
+  font-family: inherit !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}
+
+.auth-input::placeholder {
+  color: #4a4a5c;
+}
+
+.auth-input:focus {
+  border-color: #8b5cf6 !important;
+}
+
+.auth-btn-primary {
+  display: block !important;
+  width: 100% !important;
+  padding: 14px 0 !important;
+  border-radius: 14px !important;
+  background: #8b5cf6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  font-family: inherit !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.5;
+}
+
+.auth-btn-google {
+  display: flex !important;
+  width: 100% !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 14px 0 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  font-family: inherit !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}

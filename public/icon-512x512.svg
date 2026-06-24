@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#004ac6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg2)"/>
+  <g transform="translate(256,215)" text-anchor="middle" fill="white" font-family="Inter,system-ui,sans-serif">
+    <text font-size="150" font-weight="800" dy="0">MB</text>
+    <text font-size="44" font-weight="500" dy="70" opacity="0.85">Budget</text>
+  </g>
+</svg>
