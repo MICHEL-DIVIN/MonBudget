@@ -117,29 +117,29 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <p className={`text-[32px] md:text-[38px] font-extrabold tracking-tight tabular-nums leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
+            <p className={`text-[26px] sm:text-[32px] md:text-[38px] font-extrabold tracking-tight tabular-nums leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
               {formatAmount(snap.balance)}
             </p>
 
             {/* Revenus / Dépenses */}
-            <div className="flex items-center gap-5 mt-5 pt-4 border-t border-outline-variant/10">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
+            <div className="flex items-center gap-3 mt-5 pt-4 border-t border-outline-variant/10">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-success text-[16px]">south_west</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] text-on-surface-variant">Revenus</p>
-                  <p className="text-[14px] font-semibold text-on-surface tabular-nums" suppressHydrationWarning>{formatAmount(snap.totalRevenus)}</p>
+                  <p className="text-[13px] font-semibold text-on-surface tabular-nums truncate" suppressHydrationWarning>{formatAmount(snap.totalRevenus)}</p>
                 </div>
               </div>
-              <div className="w-px h-8 bg-outline-variant/15" />
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-error/15 flex items-center justify-center">
+              <div className="w-px h-8 bg-outline-variant/15 shrink-0" />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-error/15 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-error text-[16px]">north_east</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] text-on-surface-variant">Dépenses</p>
-                  <p className="text-[14px] font-semibold text-on-surface tabular-nums" suppressHydrationWarning>{formatAmount(snap.totalDepenses)}</p>
+                  <p className="text-[13px] font-semibold text-on-surface tabular-nums truncate" suppressHydrationWarning>{formatAmount(snap.totalDepenses)}</p>
                 </div>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                       <p className="text-[15px] font-medium text-on-surface truncate">{tx.label}</p>
                       <p className="text-[12px] text-on-surface-variant">{tx.sub}</p>
                     </div>
-                    <span className={`text-[15px] font-semibold tabular-nums ${tx.type === "income" ? "text-success" : "text-on-surface"}`} suppressHydrationWarning>
+                    <span className={`text-[13px] sm:text-[15px] font-semibold tabular-nums shrink-0 ${tx.type === "income" ? "text-success" : "text-on-surface"}`} suppressHydrationWarning>
                       {tx.type === "income" ? "+" : "−"}{formatAmount(tx.amount)}
                     </span>
                   </div>

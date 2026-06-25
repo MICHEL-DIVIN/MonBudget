@@ -7,6 +7,7 @@ import ClientOnly from "@/app/_components/ClientOnly";
 import AppShell from "@/app/_components/layout/AppShell";
 import DataInitializer from "@/app/_components/DataInitializer";
 import { useNotificationEngine } from "@/lib/notifications/engine";
+import { usePushNotifications } from "@/lib/notifications/push";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function NotificationRunner({ children }: { children: React.ReactNode }) {
   useNotificationEngine();
+  usePushNotifications();
   return <>{children}</>;
 }
 

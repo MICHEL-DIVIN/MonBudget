@@ -1,4 +1,5 @@
-const CACHE_NAME = "monbudget-v2";
+const CACHE_NAME = "monbudget-" + CACHE_VERSION;
+const CACHE_VERSION = "v3";
 const STATIC_ASSETS = [
   "/",
   "/dashboard",
@@ -7,6 +8,10 @@ const STATIC_ASSETS = [
   "/objectifs",
   "/synthese",
   "/profil",
+  "/admin",
+  "/login",
+  "/signup",
+  "/reset-password",
 ];
 
 self.addEventListener("install", (event) => {
@@ -113,5 +118,48 @@ self.addEventListener("fetch", (event) => {
           .match(request)
           .then((cached) => cached || caches.match("/"))
       )
+  );
+});
+
+// Push notifications
+self.addEventListener("push", (event) => {
+  let data = { title: "MonBudget", body: "Nouvelle notification", type: "info" };
+  try {
+    if (event.data) data = event.data.json();
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+
+  const icon = "/icon-192x192.svg";
+  const badge = "/icon-192x192.svg";
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "MonBudget", {
+      body: data.body || "",
+      icon,
+      badge,
+      tag: data.type || "default",
+      renotify: true,
+      data: { url: data.url || "/dashboard" },
+      vibrate: [100, 50, 100],
+    })
+  );
+});
+
+// Click on notification → open app
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/dashboard";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });

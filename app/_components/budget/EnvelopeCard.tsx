@@ -43,10 +43,10 @@ export default function EnvelopeCard({ name, icon, amount, remaining, color, cla
       <p className="text-[14px] font-semibold text-on-surface mb-1 truncate w-full">{name}</p>
 
       {/* Amount remaining */}
-      <p className={`text-[13px] font-bold tabular-nums ${isOver ? "text-error" : "text-on-surface"}`} suppressHydrationWarning>
+      <p className={`text-[12px] sm:text-[13px] font-bold tabular-nums truncate w-full ${isOver ? "text-error" : "text-on-surface"}`} suppressHydrationWarning>
         {formatAmount(remaining)}
       </p>
-      <p className="text-[10px] text-on-surface-variant mt-0.5">sur {formatAmount(amount)}</p>
+      <p className="text-[10px] text-on-surface-variant mt-0.5 truncate w-full">sur {formatAmount(amount)}</p>
 
       {/* Progress bar */}
       <div className="w-full h-1 bg-outline-variant/20 rounded-full mt-3 overflow-hidden">

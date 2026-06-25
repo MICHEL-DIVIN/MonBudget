@@ -179,5 +179,17 @@ async function runChecks(
       type: notif.type,
       created_by: null,
     });
+
+    if ("serviceWorker" in navigator && Notification.permission === "granted") {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(notif.title, {
+          body: notif.body,
+          icon: "/icon-192x192.svg",
+          tag: notif.key,
+          data: { url: "/dashboard" },
+        } as NotificationOptions);
+      } catch { /* not critical */ }
+    }
   }
 }

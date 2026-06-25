@@ -18,13 +18,17 @@ export default function OfflineProvider({ children }: { children: ReactNode }) {
   const isOnline = useOnlineStatus();
   const hasSynced = useRef(false);
 
+  const wasOffline = useRef(false);
+
   useEffect(() => {
-    if (isOnline && !hasSynced.current) {
-      hasSynced.current = true;
-      syncAll().catch(() => {});
-    }
     if (isOnline) {
-      syncAll().catch(() => {});
+      if (!hasSynced.current || wasOffline.current) {
+        hasSynced.current = true;
+        wasOffline.current = false;
+        syncAll().catch(() => {});
+      }
+    } else {
+      wasOffline.current = true;
     }
   }, [isOnline]);
 
