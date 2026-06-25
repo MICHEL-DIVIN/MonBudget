@@ -117,75 +117,102 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
 
   if (!open) return null;
 
+  const renderNotifs = () => (
+    <>
+      {allNotifs.length === 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 24, color: "#22c55e" }}>check_circle</span>
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "#f0f0f4" }}>Tout va bien !</p>
+          <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 4 }}>Aucune notification.</p>
+        </div>
+      ) : (
+        <div style={{ paddingBottom: 8 }}>
+          {serverItems.length > 0 && (
+            <p style={{ padding: "12px 16px 4px", fontSize: 10, fontWeight: 600, color: "#6b6b80", textTransform: "uppercase", letterSpacing: 1 }}>Messages</p>
+          )}
+          {serverItems.map((n) => (
+            <div
+              key={n.id}
+              onClick={() => !n.read && markRead(n.id)}
+              style={{ display: "flex", gap: 10, padding: "12px 16px", opacity: n.read ? 0.5 : 1, cursor: n.read ? "default" : "pointer" }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: n.bg.includes("error") ? "rgba(239,68,68,0.15)" : n.bg.includes("success") ? "rgba(34,197,94,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: n.color.includes("error") ? "#ef4444" : n.color.includes("success") ? "#22c55e" : "#8b5cf6" }}>{n.icon}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "#f0f0f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
+                  {!n.read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#8b5cf6", flexShrink: 0 }} />}
+                </div>
+                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 2, lineHeight: 1.4 }}>{n.message}</p>
+                {n.time && <p style={{ fontSize: 10, color: "#4a4a5c", marginTop: 4 }}>{n.time}</p>}
+              </div>
+            </div>
+          ))}
+          {localAlerts.length > 0 && (
+            <p style={{ padding: "12px 16px 4px", fontSize: 10, fontWeight: 600, color: "#6b6b80", textTransform: "uppercase", letterSpacing: 1 }}>Alertes budget</p>
+          )}
+          {localAlerts.map((n) => (
+            <div key={n.id} style={{ display: "flex", gap: 10, padding: "12px 16px" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: n.bg.includes("error") ? "rgba(239,68,68,0.15)" : n.bg.includes("success") ? "rgba(34,197,94,0.15)" : n.bg.includes("warning") ? "rgba(245,158,11,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: n.color.includes("error") ? "#ef4444" : n.color.includes("success") ? "#22c55e" : n.color.includes("warning") ? "#f59e0b" : "#8b5cf6" }}>{n.icon}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "#f0f0f4" }}>{n.title}</p>
+                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 2, lineHeight: 1.4 }}>{n.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/30 md:bg-transparent" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 md:bottom-auto md:top-14 md:right-8 md:left-auto z-50 md:w-[360px] max-h-[80vh] md:max-h-[75vh] bg-surface-container rounded-t-2xl md:rounded-2xl border border-outline-variant/20 shadow-elevated overflow-hidden animate-slide-up">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/20">
-          <h2 className="text-sm font-semibold text-on-surface">Notifications</h2>
-          <div className="flex items-center gap-2">
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.5)" }}
+      />
+
+      {/* Panel */}
+      <div
+        style={{
+          position: "fixed",
+          top: 56,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 61,
+          background: "#0a0a0f",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(42,42,54,0.3)", position: "sticky", top: 0, background: "#0a0a0f", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#f0f0f4" }}>arrow_back</span>
+            </button>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f4" }}>Notifications</h2>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {unreadCount > 0 && (
-              <button onClick={markAllRead} className="text-[11px] text-primary font-medium hover:underline">
+              <button onClick={markAllRead} style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>
                 Tout lire
               </button>
             )}
-            <span className="text-xs text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full">
+            <span style={{ fontSize: 11, color: "#6b6b80", background: "#1e1e28", padding: "2px 8px", borderRadius: 99 }}>
               {unreadCount}
             </span>
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[65vh]">
-          {allNotifs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <div className="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-success text-xl">check_circle</span>
-              </div>
-              <p className="text-sm text-on-surface font-medium">Tout va bien !</p>
-              <p className="text-xs text-on-surface-variant text-center mt-1">Aucune notification.</p>
-            </div>
-          ) : (
-            <div className="py-1">
-              {serverItems.length > 0 && (
-                <p className="px-4 pt-3 pb-1 text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Messages</p>
-              )}
-              {serverItems.map((n) => (
-                <div
-                  key={n.id}
-                  className={`flex gap-3 px-4 py-3 transition-colors cursor-pointer ${n.read ? "opacity-60" : "hover:bg-surface-container-high"}`}
-                  onClick={() => !n.read && markRead(n.id)}
-                >
-                  <div className={`w-9 h-9 rounded-lg ${n.bg} flex items-center justify-center shrink-0`}>
-                    <span className={`material-symbols-outlined text-base ${n.color}`}>{n.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-on-surface truncate">{n.title}</p>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
-                    </div>
-                    <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{n.message}</p>
-                    {n.time && <p className="text-[10px] text-on-surface-variant/60 mt-1">{n.time}</p>}
-                  </div>
-                </div>
-              ))}
-
-              {localAlerts.length > 0 && (
-                <p className="px-4 pt-3 pb-1 text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Alertes budget</p>
-              )}
-              {localAlerts.map((n) => (
-                <div key={n.id} className="flex gap-3 px-4 py-3">
-                  <div className={`w-9 h-9 rounded-lg ${n.bg} flex items-center justify-center shrink-0`}>
-                    <span className={`material-symbols-outlined text-base ${n.color}`}>{n.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-on-surface">{n.title}</p>
-                    <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{n.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {renderNotifs()}
       </div>
     </>
   );

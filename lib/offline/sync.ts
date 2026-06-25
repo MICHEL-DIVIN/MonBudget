@@ -51,27 +51,36 @@ export async function processQueue(): Promise<void> {
         continue;
       }
 
+      let syncError = null;
+
       if (item.operation === "create") {
         const { _dirty, _deleted, ...cleanData } = item.data as Record<string, unknown>;
         const { error } = await supabase.from(table).upsert(cleanData);
-        if (error && isAuthError(error)) {
-          await supabase.auth.signOut();
-          return;
-        }
+        syncError = error;
       } else if (item.operation === "update") {
-        const { _dirty, _deleted, id, ...updates } = item.data as Record<string, unknown>;
+        const { _dirty, _deleted, id, created_at, user_id, ...updates } = item.data as Record<string, unknown>;
         const { error } = await supabase.from(table).update(updates).eq("id", id);
-        if (error && isAuthError(error)) {
-          await supabase.auth.signOut();
-          return;
-        }
+        syncError = error;
       } else if (item.operation === "delete") {
         const { error } = await supabase.from(table).delete().eq("id", item.data.id as string);
-        if (error && isAuthError(error)) {
-          await supabase.auth.signOut();
-          return;
-        }
+        syncError = error;
       }
+
+      if (syncError) {
+        if (isAuthError(syncError)) { await supabase.auth.signOut(); return; }
+        continue;
+      }
+
+      if (item.operation !== "delete" && item.data.id) {
+        try {
+          const record = await db.get(table as unknown as never, item.data.id as string);
+          if (record) {
+            (record as Record<string, unknown>)._dirty = false;
+            await db.put(table as unknown as never, record as never);
+          }
+        } catch { /* non-critical */ }
+      }
+
       await db.delete("sync_queue", item.id);
     } catch (err) {
       if (isAuthError(err)) {

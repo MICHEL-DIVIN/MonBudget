@@ -44,6 +44,7 @@ export default function DepensesPage() {
   const [showEnvelopeManager, setShowEnvelopeManager] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
 
   const { data: allDepenses, loading: loadingDep, addItem, updateItem, deleteItem } = useOfflineData<Depense>("depenses");
   const { data: envelopes, loading: loadingEnv, addItem: addEnvelope, updateItem: updateEnvelope, deleteItem: deleteEnvelope } = useOfflineData<Envelope>("envelopes");
@@ -53,24 +54,31 @@ export default function DepensesPage() {
     [allDepenses, month, year]
   );
 
-  const fixedExpenses = depensesByCategory(monthDepenses, "fixe");
-
   const totalEnvelopeBudget = envelopes.reduce((s, e) => s + e.budgeted, 0);
   const totalEnvelopeSpent = envelopes.reduce((s, e) => s + envelopeSpent(monthDepenses, e.id), 0);
   const remainingEnvelopes = totalEnvelopeBudget - totalEnvelopeSpent;
 
-  const filteredFixedExpenses = useMemo(() => {
-    if (!searchQuery) return fixedExpenses;
-    const q = searchQuery.toLowerCase();
-    return fixedExpenses.filter(d => d.label.toLowerCase().includes(q));
-  }, [fixedExpenses, searchQuery]);
+  const filteredDepenses = useMemo(() => {
+    let list = monthDepenses;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(d => d.label.toLowerCase().includes(q));
+    }
+    if (filterCategory && filterCategory !== "fixe" && filterCategory !== "variable") {
+      list = list.filter(d => d.envelope_id === filterCategory);
+    } else if (filterCategory) {
+      list = list.filter(d => d.category === filterCategory);
+    }
+    return list;
+  }, [monthDepenses, searchQuery, filterCategory]);
 
   const transactions = useMemo(
     () =>
-      filteredFixedExpenses
+      filteredDepenses
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .map((d) => {
           const ic = getIconForLabel(d.label);
+          const envName = d.envelope_id ? envelopes.find(e => e.id === d.envelope_id)?.name : null;
           return {
             id: d.id,
             label: d.label,
@@ -78,9 +86,10 @@ export default function DepensesPage() {
             date: formatDate(d.date),
             icon: ic.icon,
             iconBg: ic.bg,
+            sub: envName ? `Enveloppe: ${envName}` : d.category === "fixe" ? "Fixe" : "Variable",
           };
         }),
-    [filteredFixedExpenses]
+    [filteredDepenses, envelopes]
   );
 
   const expenseCategories = [
@@ -179,7 +188,7 @@ export default function DepensesPage() {
     <div className="space-y-5 max-w-4xl mx-auto">
       <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
 
-      <TransactionSearch onSearch={setSearchQuery} />
+      <TransactionSearch onSearch={setSearchQuery} onFilterCategory={(c) => setFilterCategory(c ?? "")} categories={expenseCategories} />
 
       <div className="bg-surface-container rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
@@ -228,7 +237,7 @@ export default function DepensesPage() {
       ) : transactions.length > 0 ? (
         <>
           <TransactionList
-            title="Historique des dépenses fixes"
+            title="Historique des dépenses"
             transactions={transactions}
             onEdit={handleEditDepense}
             onDelete={handleDeleteDepense}
@@ -241,7 +250,7 @@ export default function DepensesPage() {
       ) : (
         <div className="text-center py-8">
           <Icon name="receipt_long" size={48} className="text-outline mx-auto mb-2" />
-          <p className="text-on-surface-variant">Aucune dépense fixe ce mois-ci</p>
+          <p className="text-on-surface-variant">Aucune dépense ce mois-ci</p>
           <button onClick={() => { setEditingId(null); setShowAddForm(true); }} className="mt-3 text-primary font-medium">
             Ajouter une dépense
           </button>

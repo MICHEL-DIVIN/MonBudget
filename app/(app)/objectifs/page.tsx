@@ -103,8 +103,14 @@ export default function ObjectifsPage() {
     const obj = objectifs.find((o) => o.id === fundsTargetId);
     if (!obj) return;
 
-    const newAmount = Math.min(Number(obj.current_amount) + amount, Number(obj.target_amount));
+    const maxAdd = Number(obj.target_amount) - Number(obj.current_amount);
+    const actualAdd = Math.min(amount, maxAdd > 0 ? maxAdd : amount);
+    const newAmount = Number(obj.current_amount) + actualAdd;
     await updateItem(fundsTargetId, { current_amount: newAmount });
+
+    if (actualAdd < amount) {
+      toast(`Seulement ${actualAdd.toFixed(2)} ajoutés pour atteindre l'objectif`, "info");
+    }
 
     if (newAmount >= Number(obj.target_amount) && Number(obj.current_amount) < Number(obj.target_amount)) {
       toast("Objectif atteint !", "success");

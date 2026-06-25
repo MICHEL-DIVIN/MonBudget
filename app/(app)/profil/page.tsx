@@ -42,8 +42,8 @@ export default function ProfilPage() {
   const { theme: currentTheme, setTheme: setThemeFromCtx } = useTheme();
   const { data: profiles, updateItem: updateProfile } = useOfflineData<Profile>("profiles");
   const { data: objectifs } = useOfflineData<Objectif>("objectifs");
-  const { addItem: addRevenu } = useOfflineData<Revenu>("revenus");
-  const { addItem: addDepense } = useOfflineData<Depense>("depenses");
+  const { data: allRevenus, addItem: addRevenu } = useOfflineData<Revenu>("revenus");
+  const { data: allDepenses, addItem: addDepense } = useOfflineData<Depense>("depenses");
 
   const profile = profiles.length > 0 ? profiles[0] : null;
   const fullName = profile?.full_name ?? "";
@@ -181,33 +181,48 @@ export default function ProfilPage() {
       setLastName(nameParts.slice(1).join(" ") || "");
       setLanguage(profile.locale?.startsWith("en") ? "en" : "fr");
     }
-  }, [profile]);
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [profile, user]);
 
   async function handleSave() {
     setSaving(true);
     const newName = `${firstName} ${lastName}`.trim();
-    try {
-      await supabase.from("profiles").update({
-        full_name: newName,
-        currency: currentCurrency,
-        locale: language === "en" ? "en-US" : "fr-FR",
-        updated_at: new Date().toISOString(),
-      }).eq("id", profile?.id ?? userId);
-    } catch {
-      // offline
+    const updates = {
+      full_name: newName,
+      currency: currentCurrency,
+      locale: language === "en" ? "en-US" : "fr-FR",
+    };
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("profiles").update({
+      ...updates,
+      updated_at: now,
+    }).eq("id", profile?.id ?? userId);
+
+    if (error) {
+      toast("Erreur de sauvegarde. Les modifications seront synchronisées plus tard.", "info");
     }
+
+    if (profile) {
+      await updateProfile(profile.id, { ...updates, updated_at: now });
+    }
+
     setSaving(false);
     setSaved(true);
+    toast(error ? "Enregistré localement" : "Profil enregistré", error ? "info" : "success");
     setTimeout(() => { setSaved(false); setActiveSheet(null); }, 1500);
   }
 
-  async function handleExportCSV() {
-    const { data: revenus } = await supabase.from("revenus").select("*").eq("user_id", userId);
-    const { data: depenses } = await supabase.from("depenses").select("*").eq("user_id", userId);
+  function handleExportCSV() {
+    if (allRevenus.length === 0 && allDepenses.length === 0) {
+      toast("Aucune donnée à exporter", "info");
+      return;
+    }
     const rows = [
       "Type,Label,Montant,Catégorie,Date",
-      ...(revenus ?? []).map((r: { label: string; amount: number; category: string; date: string }) => `Revenu,${r.label},${r.amount},${r.category},${r.date}`),
-      ...(depenses ?? []).map((d: { label: string; amount: number; category: string; date: string }) => `Dépense,${d.label},${d.amount},${d.category},${d.date}`),
+      ...allRevenus.map((r) => `Revenu,"${String(r.label).replace(/"/g, '""')}",${r.amount},"${r.category}",${r.date}`),
+      ...allDepenses.map((d) => `Dépense,"${String(d.label).replace(/"/g, '""')}",${d.amount},"${d.category}",${d.date}`),
     ];
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -218,9 +233,13 @@ export default function ProfilPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleExportPDF() {
-    const { data: revenus } = await supabase.from("revenus").select("*").eq("user_id", userId);
-    const { data: depenses } = await supabase.from("depenses").select("*").eq("user_id", userId);
+  function handleExportPDF() {
+    if (allRevenus.length === 0 && allDepenses.length === 0) {
+      toast("Aucune donnée à exporter", "info");
+      return;
+    }
+    const revenus = allRevenus;
+    const depenses = allDepenses;
     const { formatAmount } = { formatAmount: (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n) };
     generateBudgetPdf({
       title: "Mon Budget Familial — Export",
@@ -307,7 +326,7 @@ export default function ProfilPage() {
             <Input label="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
             <Input label="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
-          <Input label="Adresse Email" value={displayEmail} onChange={(e) => setEmail(e.target.value)} type="email" />
+          <Input label="Adresse Email" value={displayEmail} onChange={() => {}} type="email" disabled />
           <div className="mt-6 flex items-center gap-3">
             <Button variant="primary" size="md" onClick={handleSave} disabled={saving}>
               {saving ? "Enregistrement..." : "Enregistrer les modifications"}
@@ -470,7 +489,7 @@ export default function ProfilPage() {
           </div>
           <Input label="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
           <Input label="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          <Input label="Email" value={displayEmail} onChange={(e) => setEmail(e.target.value)} type="email" />
+          <Input label="Email" value={displayEmail} onChange={() => {}} type="email" disabled />
           <Select label="Langue" value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: "fr", label: "Français (FR)" }, { value: "en", label: "English (EN)" }]} />
           <Select label="Devise" value={currentCurrency} onChange={(e) => setGlobalCurrency(e.target.value as CurrencyCode)} options={CURRENCY_OPTIONS} />
           <div className="flex gap-3 pt-2">
@@ -531,7 +550,7 @@ export default function ProfilPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="outline" size="md" onClick={() => setActiveSheet(null)} className="flex-1">Annuler</Button>
-            <Button variant="primary" size="md" onClick={handlePasswordChange} disabled={!newPassword || newPassword.length < 6 || (confirmPassword.length > 0 && newPassword !== confirmPassword)} className="flex-1">
+            <Button variant="primary" size="md" onClick={handlePasswordChange} disabled={!currentPassword || !newPassword || !confirmPassword || !!validatePassword(newPassword) || newPassword !== confirmPassword} className="flex-1">
               Changer le mot de passe
             </Button>
           </div>

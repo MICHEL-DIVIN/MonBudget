@@ -1,4 +1,5 @@
 import { getDB } from "./db";
+import { enqueueSync } from "./sync";
 import { v4 as uuidv4 } from "uuid";
 import type { Revenu, Depense } from "@/lib/supabase/types";
 
@@ -25,6 +26,7 @@ export async function generateRecurringTransactions(): Promise<void> {
     const existsThisMonth = allRevenus.some((r: any) =>
       !r._deleted &&
       r.label === template.label &&
+      Number(r.amount) === Number(template.amount) &&
       r.recurring &&
       r.id !== template.id &&
       new Date(r.date).getMonth() === currentMonth &&
@@ -49,6 +51,7 @@ export async function generateRecurringTransactions(): Promise<void> {
         _deleted: false,
       };
       await db.put("revenus", newRevenu as any);
+      await enqueueSync("revenus", "create", newRevenu);
     }
   }
 
@@ -67,6 +70,7 @@ export async function generateRecurringTransactions(): Promise<void> {
     const existsThisMonth = allDepenses.some((d: any) =>
       !d._deleted &&
       d.label === template.label &&
+      Number(d.amount) === Number(template.amount) &&
       d.recurring &&
       d.id !== template.id &&
       new Date(d.date).getMonth() === currentMonth &&
@@ -91,6 +95,7 @@ export async function generateRecurringTransactions(): Promise<void> {
         _deleted: false,
       };
       await db.put("depenses", newDepense as any);
+      await enqueueSync("depenses", "create", newDepense);
     }
   }
 }

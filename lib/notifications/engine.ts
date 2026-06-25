@@ -23,16 +23,20 @@ export function useNotificationEngine() {
   const { data: depenses } = useOfflineData<Depense>("depenses");
   const { data: envelopes } = useOfflineData<Envelope>("envelopes");
   const { data: objectifs } = useOfflineData<Objectif>("objectifs");
-  const hasRun = useRef(false);
+  const lastDataHash = useRef("");
 
   useEffect(() => {
-    if (!user || hasRun.current) return;
+    if (!user) return;
     if (revenus.length === 0 && depenses.length === 0 && objectifs.length === 0) return;
 
+    const hash = `${revenus.length}-${depenses.length}-${objectifs.length}-${envelopes.length}`;
     const lastCheck = localStorage.getItem(CHECK_KEY);
-    if (lastCheck && Date.now() - Number(lastCheck) < MIN_INTERVAL) return;
+    const timePassed = !lastCheck || Date.now() - Number(lastCheck) >= MIN_INTERVAL;
+    const dataChanged = hash !== lastDataHash.current;
 
-    hasRun.current = true;
+    if (!timePassed && !dataChanged) return;
+
+    lastDataHash.current = hash;
     runChecks(user.id, revenus, depenses, envelopes, objectifs);
     localStorage.setItem(CHECK_KEY, String(Date.now()));
   }, [user, revenus, depenses, envelopes, objectifs]);
@@ -159,14 +163,14 @@ async function runChecks(
 
   const { data: existing } = await supabase
     .from("notifications")
-    .select("body")
+    .select("title, type")
     .eq("user_id", userId)
     .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
 
-  const existingBodies = new Set((existing ?? []).map((n: { body: string }) => n.body));
+  const existingKeys = new Set((existing ?? []).map((n: { title: string; type: string }) => `${n.type}:${n.title}`));
 
   for (const notif of pending) {
-    if (existingBodies.has(notif.body)) continue;
+    if (existingKeys.has(`${notif.type}:${notif.title}`)) continue;
 
     await supabase.from("notifications").insert({
       user_id: userId,

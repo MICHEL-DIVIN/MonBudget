@@ -27,9 +27,7 @@ const securityHeaders = [
   ...(isDev ? [] : [
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-    { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
   ]),
-  { key: "Cross-Origin-Resource-Policy", value: isDev ? "cross-origin" : "same-site" },
 ];
 
 const nextConfig: NextConfig = {
