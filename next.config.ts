@@ -5,8 +5,8 @@ const isDev = process.env.NODE_ENV !== "production";
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data: blob: https://fwuvdwvllhwxoigkqiug.supabase.co",
   `connect-src 'self' https://fwuvdwvllhwxoigkqiug.supabase.co wss://fwuvdwvllhwxoigkqiug.supabase.co${isDev ? " http://192.168.100.148:* ws://192.168.100.148:*" : ""}`,
   "frame-ancestors 'none'",
@@ -26,7 +26,6 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
   ...(isDev ? [] : [
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-    { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   ]),
 ];
 

@@ -45,10 +45,6 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-          rel="stylesheet"
-        />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className="min-h-full font-sans antialiased">

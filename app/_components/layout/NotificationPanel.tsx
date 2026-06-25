@@ -170,16 +170,59 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
     </>
   );
 
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(42,42,54,0.3)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={onClose} className="md:hidden" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#f0f0f4" }}>arrow_back</span>
+        </button>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f4" }}>Notifications</h2>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {unreadCount > 0 && (
+          <button onClick={markAllRead} style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>
+            Tout lire
+          </button>
+        )}
+        <span style={{ fontSize: 11, color: "#6b6b80", background: "#1e1e28", padding: "2px 8px", borderRadius: 99 }}>
+          {unreadCount}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.5)" }}
+        style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)" }}
       />
 
-      {/* Panel */}
+      {/* Desktop: dropdown */}
       <div
+        className="hidden md:block"
+        style={{
+          position: "fixed",
+          top: 56,
+          right: 24,
+          width: 380,
+          maxHeight: "70vh",
+          zIndex: 61,
+          background: "#18181f",
+          borderRadius: 16,
+          border: "1px solid rgba(42,42,54,0.4)",
+          boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+          overflowY: "auto",
+        }}
+      >
+        {header}
+        {renderNotifs()}
+      </div>
+
+      {/* Mobile: plein écran */}
+      <div
+        className="md:hidden"
         style={{
           position: "fixed",
           top: 56,
@@ -192,26 +235,7 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(42,42,54,0.3)", position: "sticky", top: 0, background: "#0a0a0f", zIndex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#f0f0f4" }}>arrow_back</span>
-            </button>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f4" }}>Notifications</h2>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>
-                Tout lire
-              </button>
-            )}
-            <span style={{ fontSize: 11, color: "#6b6b80", background: "#1e1e28", padding: "2px 8px", borderRadius: 99 }}>
-              {unreadCount}
-            </span>
-          </div>
-        </div>
-
+        {header}
         {renderNotifs()}
       </div>
     </>
