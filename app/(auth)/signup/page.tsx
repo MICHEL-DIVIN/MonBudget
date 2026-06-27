@@ -109,14 +109,13 @@ export default function SignupPage() {
           </span>
         </div>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f4", marginBottom: 8 }}>
-          Vérifiez votre email
+          Compte créé avec succès
         </h1>
         <p style={{ fontSize: 14, color: "#6b6b80", marginBottom: 24 }}>
-          Un lien de confirmation a été envoyé à{" "}
-          <strong style={{ color: "#f0f0f4" }}>{email}</strong>.
+          Votre compte a été créé. Vous pouvez maintenant vous connecter.
         </p>
         <Link href="/login" style={{ color: "#8b5cf6", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>
-          Retour à la connexion
+          Se connecter
         </Link>
       </div>
     );
@@ -221,7 +220,7 @@ export default function SignupPage() {
       </div>
 
       {/* Google */}
-      <button className="auth-btn-google" type="button" onClick={async () => { const r = await signInWithGoogle(); if (r.error) setError(r.error); }}>
+      <button className="auth-btn-google" type="button" onClick={() => setError("Connexion Google temporairement indisponible.")}>
         <GoogleIcon />
         Continuer avec Google
       </button>

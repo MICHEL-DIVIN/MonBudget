@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/provider";
 
 export type CurrencyCode = "EUR" | "USD" | "GBP" | "XOF" | "XAF" | "CAD" | "CHF";
 
@@ -32,18 +34,54 @@ const LOCALE_MAP: Record<CurrencyCode, string> = {
 
 export default function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>("EUR");
+  const { user } = useAuth();
 
   useEffect(() => {
+    // Charger depuis localStorage d'abord
     const saved = localStorage.getItem("monbudget-currency");
     if (saved && Object.keys(LOCALE_MAP).includes(saved)) {
       setCurrencyState(saved as CurrencyCode);
     }
   }, []);
 
-  const setCurrency = useCallback((c: CurrencyCode) => {
+  // Charger la devise depuis le profil utilisateur quand connecté
+  useEffect(() => {
+    if (!user) return;
+
+    const userId = user.id;
+
+    async function loadCurrencyFromProfile() {
+      const { data } = await supabase
+        .from("profiles")
+        .select("currency")
+        .eq("id", userId)
+        .single();
+
+      if (data?.currency && Object.keys(LOCALE_MAP).includes(data.currency)) {
+        setCurrencyState(data.currency as CurrencyCode);
+        localStorage.setItem("monbudget-currency", data.currency);
+      }
+    }
+
+    loadCurrencyFromProfile();
+  }, [user]);
+
+  const setCurrency = useCallback(async (c: CurrencyCode) => {
     setCurrencyState(c);
     localStorage.setItem("monbudget-currency", c);
-  }, []);
+
+    // Sauvegarder dans le profil utilisateur si connecté
+    if (user) {
+      try {
+        await supabase
+          .from("profiles")
+          .update({ currency: c })
+          .eq("id", user.id);
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde de la devise:", error);
+      }
+    }
+  }, [user]);
 
   const formatAmount = useCallback(
     (amount: number) => {

@@ -7,6 +7,7 @@ import AuthProvider from "@/lib/auth/provider";
 import CurrencyProvider from "@/lib/currency/provider";
 import ThemeProvider from "@/lib/theme/provider";
 import ServiceWorkerRegistrar from "@/app/_components/ServiceWorkerRegistrar";
+import PWAInstallPrompt from "@/app/_components/PWAInstallPrompt";
 import ToastProvider from "@/app/_components/ui/Toast";
 
 const inter = Inter({
@@ -57,6 +58,7 @@ export default function RootLayout({
           </OfflineProvider>
         </AuthProvider>
         <ServiceWorkerRegistrar />
+        <PWAInstallPrompt />
       </body>
     </html>
   );

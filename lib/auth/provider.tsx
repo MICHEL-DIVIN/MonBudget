@@ -129,7 +129,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: sanitizeInput(fullName) } },
+      options: { 
+        data: { full_name: sanitizeInput(fullName) },
+      },
     });
     if (error) return { error: sanitizeErrorMessage(error.message) };
     return { error: null };

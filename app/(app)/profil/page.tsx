@@ -32,7 +32,7 @@ const CURRENCY_OPTIONS = [
   { value: "CHF", label: "Franc Suisse (CHF)" },
 ];
 
-type SheetPanel = null | "compte" | "notifications" | "securite" | "export" | "aide" | "guide" | "faq" | "contact";
+type SheetPanel = null | "compte" | "notifications" | "securite" | "export" | "aide" | "guide" | "faq" | "contact" | "install";
 
 export default function ProfilPage() {
   const userId = useUserId();
@@ -285,6 +285,7 @@ export default function ProfilPage() {
     { key: "notifications", icon: "notifications", bg: "bg-secondary/15", label: "Notifications", desc: "Alertes budget, rappels..." },
     { key: "securite", icon: "shield", bg: "bg-error/15", label: "Sécurité", desc: "FaceID, Code PIN, MDP..." },
     { key: "export", icon: "upload_file", bg: "bg-tertiary/15", label: "Export", desc: "PDF, CSV, Rappels fiscaux" },
+    { key: "install", icon: "download", bg: "bg-success/15", label: "Installer l'app", desc: "Instructions Android & iPhone" },
     { key: "aide", icon: "help", bg: "bg-surface-container-high", label: "Aide", desc: "Centre d'aide, support..." },
   ];
 
@@ -724,6 +725,87 @@ export default function ProfilPage() {
           <div className="text-center pt-2">
             <p className="text-[11px] text-outline">Mon Budget Familial v1.0.0</p>
             <p className="text-[11px] text-outline mt-0.5">© 2025 — Tous droits réservés</p>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Installation PWA */}
+      <BottomSheet isOpen={activeSheet === "install"} onClose={() => setActiveSheet(null)} title="Installer l'application">
+        <div className="space-y-6">
+          <p className="text-[14px] text-on-surface-variant">Installez MonBudget sur votre appareil pour un accès rapide et une expérience optimale.</p>
+
+          {/* Android */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
+                <Icon name="android" size={24} className="text-green-400" />
+              </div>
+              <h3 className="font-semibold text-on-surface">Android</h3>
+            </div>
+            <div className="space-y-2 text-[13px] text-on-surface-variant">
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">1.</span>
+                <span>Ouvrez l'application dans Chrome</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">2.</span>
+                <span>Attendez que le message "Installer l'application" apparaisse en bas</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">3.</span>
+                <span>Appuyez sur "Installer maintenant"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">4.</span>
+                <span>Confirmez l'installation</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-outline-variant/30" />
+
+          {/* iPhone */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                <Icon name="phone_iphone" size={24} className="text-blue-400" />
+              </div>
+              <h3 className="font-semibold text-on-surface">iPhone (iOS)</h3>
+            </div>
+            <div className="space-y-2 text-[13px] text-on-surface-variant">
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">1.</span>
+                <span>Ouvrez l'application dans Safari</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">2.</span>
+                <span>Appuyez sur le bouton Partager <span className="inline-block px-1.5 py-0.5 bg-surface-container rounded text-[11px]">⎋</span> en bas de l'écran</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">3.</span>
+                <span>Faites défiler vers le bas et appuyez sur "Sur l'écran d'accueil"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">4.</span>
+                <span>Appuyez sur "Ajouter" en haut à droite</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary font-bold">5.</span>
+                <span>L'icône MonBudget apparaîtra sur votre écran d'accueil</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-outline-variant/30" />
+
+          <div className="bg-primary/5 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <Icon name="info" size={20} className="text-primary shrink-0" />
+              <div>
+                <p className="text-[13px] font-medium text-on-surface mb-1">Avantages de l'installation</p>
+                <p className="text-[12px] text-on-surface-variant">Accès rapide depuis l'écran d'accueil, expérience fullscreen, notifications push, fonctionnement hors ligne.</p>
+              </div>
+            </div>
           </div>
         </div>
       </BottomSheet>
