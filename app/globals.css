@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-ui), "Source Sans 3", system-ui, sans-serif;
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
 
-  /* Core palette — ledger domestique */
-  --color-primary: #8a7fd4;
+  /* Core palette */
+  --color-primary: #8b5cf6;
   --color-on-primary: #ffffff;
-  --color-primary-container: #6d62b8;
+  --color-primary-container: #7c3aed;
   --color-on-primary-container: #ffffff;
-  --color-primary-fixed: #2a2540;
-  --color-primary-fixed-dim: #c4b8f0;
-  --color-inverse-primary: #a89ee8;
-  --color-secondary: #6b9e78;
+  --color-primary-fixed: #2a1f4e;
+  --color-primary-fixed-dim: #c4b5fd;
+  --color-inverse-primary: #a78bfa;
+  --color-secondary: #6366f1;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #4a7a58;
-  --color-secondary-fixed: #1a2e20;
-  --color-tertiary: #c9a962;
-  --color-on-tertiary: #1a1814;
-  --color-tertiary-container: #a88840;
-  --color-tertiary-fixed: #2e2818;
+  --color-secondary-container: #4f46e5;
+  --color-secondary-fixed: #1e1b4b;
+  --color-tertiary: #f59e0b;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #d97706;
+  --color-tertiary-fixed: #451a03;
   --color-error: #ef4444;
   --color-on-error: #ffffff;
   --color-error-container: #3b1114;
   --color-on-error-container: #fca5a5;
 
   /* Dark surfaces (DEFAULT) */
-  --color-background: #0b0b12;
-  --color-on-background: #eceaf2;
+  --color-background: #0a0a0f;
+  --color-on-background: #f0f0f4;
   --color-surface: #0a0a0f;
   --color-surface-dim: #060608;
   --color-surface-bright: #1a1a24;
@@ -53,7 +53,7 @@
   --color-env-orange: #f97316;
 
   /* Status */
-  --color-success: #6b9e78;
+  --color-success: #22c55e;
   --color-success-light: #052e16;
   --color-warning: #f59e0b;
   --color-warning-light: #451a03;
@@ -177,34 +177,6 @@ body {
 
 .animate-slide-up { animation: slideUp 0.3s ease-out both; }
 .animate-fade-in { animation: fadeIn 0.2s ease-out both; }
-
-/* ── Design system utilities ── */
-.font-display {
-  font-family: var(--font-display), "Fraunces", Georgia, serif;
-}
-
-.font-amount {
-  font-family: var(--font-display), "Fraunces", Georgia, serif;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-.section-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--color-on-surface-variant);
-}
-
-.ledger-card {
-  border-left: 3px solid var(--ledger-accent, var(--color-primary));
-}
-
-.ledger-card--success { --ledger-accent: var(--color-success); }
-.ledger-card--warning { --ledger-accent: var(--color-warning); }
-.ledger-card--error { --ledger-accent: var(--color-error); }
-.ledger-card--gold { --ledger-accent: var(--color-tertiary); }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-float,

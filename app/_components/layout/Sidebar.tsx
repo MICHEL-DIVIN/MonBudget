@@ -35,9 +35,9 @@ export default function Sidebar() {
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-[264px] flex-col bg-surface-container-lowest z-40 p-6 border-r border-outline-variant/20">
       {/* App logo */}
       <div className="mb-8 pb-6 border-b border-outline-variant/20">
-        <p className="section-label mb-2">Registre familial</p>
-        <h1 className="font-display text-[22px] text-on-surface leading-tight tracking-tight">Mon Budget</h1>
-        <p className="font-display text-[22px] text-primary leading-tight tracking-tight">Familial</p>
+        <h1 className="text-primary font-bold text-lg">Mon Budget</h1>
+        <h2 className="text-primary font-bold text-lg">Familial</h2>
+        <p className="text-on-surface-variant text-xs mt-1">Family Finance</p>
       </div>
 
       {/* Navigation */}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./icons.css";
 import "./globals.css";
 import OfflineProvider from "@/lib/offline/provider";
@@ -11,15 +11,9 @@ import PWAInstallPrompt from "@/app/_components/PWAInstallPrompt";
 import I18nProvider from "@/lib/i18n/provider";
 import ToastProvider from "@/app/_components/ui/Toast";
 
-const fraunces = Fraunces({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-ui",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -38,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b12",
+  themeColor: "#0a0a0f",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -50,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${fraunces.variable} ${sourceSans.variable} h-full`} suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <script

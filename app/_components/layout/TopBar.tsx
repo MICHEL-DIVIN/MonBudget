@@ -55,8 +55,8 @@ export default function TopBar() {
   return (
     <>
       {/* Desktop */}
-      <header className="hidden md:flex sticky top-0 z-30 items-center justify-between h-14 px-8 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20">
-        <span className="font-display text-primary text-lg tracking-tight">MonBudget</span>
+      <header className="hidden md:flex sticky top-0 z-30 items-center justify-between h-14 px-8 bg-background/90 backdrop-blur-xl border-b border-outline-variant/30">
+        <span className="text-primary font-bold">MonBudget</span>
         <div className="flex items-center gap-2">
           <Link
             href="/synthese"
@@ -70,8 +70,8 @@ export default function TopBar() {
       </header>
 
       {/* Mobile */}
-      <header className="flex md:hidden sticky top-0 z-30 items-center justify-between h-14 px-5 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20">
-        <span className="font-display text-primary text-[15px] tracking-tight">MonBudget</span>
+      <header className="flex md:hidden sticky top-0 z-30 items-center justify-between h-14 px-5 bg-background/90 backdrop-blur-xl">
+        <span className="text-primary font-bold text-[15px]">MonBudget</span>
         <div className="flex items-center gap-2">
           <Bell className="w-10 h-10" />
         </div>

@@ -13,7 +13,7 @@ import { compareDateStrings, toLocalDate } from "@/lib/utils/dates";
 import { useTransactionForm } from "@/lib/transaction-form/context";
 import { formatDate } from "@/lib/utils/format";
 import { useCurrency } from "@/lib/currency/provider";
-import type { Depense, Envelope, Profile, Revenu } from "@/lib/supabase/types";
+import type { Depense, Envelope, Revenu } from "@/lib/supabase/types";
 
 function txIcon(label: string) {
   const l = label.toLowerCase();
@@ -32,7 +32,6 @@ function txIcon(label: string) {
 
 const IM = new Date().getMonth();
 const IY = new Date().getFullYear();
-const MN = ["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
 const MS = ["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aout","Sep","Oct","Nov","Dec"];
 
 function groupByDate(txs: { id: string; label: string; amount: number; sortDate: string; date: string; icon: string; iconBg: string; iconText: string; type: "expense" | "income"; sub: string }[]) {
@@ -61,11 +60,9 @@ export default function DashboardPage() {
   const { data: allDep, loading: l1 } = useOfflineData<Depense>("depenses");
   const { data: envs, loading: l2 } = useOfflineData<Envelope>("envelopes");
   const { data: allRev, loading: l3 } = useOfflineData<Revenu>("revenus");
-  const { data: profiles } = useOfflineData<Profile>("profiles");
 
   const { formatAmount } = useCurrency();
   const { openForm } = useTransactionForm();
-  const name = profiles.length > 0 ? profiles[0].full_name.split(" ")[0] : "";
   const loading = l1 || l2 || l3;
   const isCurrent = month === new Date().getMonth() && year === new Date().getFullYear();
 
@@ -96,47 +93,30 @@ export default function DashboardPage() {
   const hasData = snap.totalRevenus > 0 || snap.totalDepenses > 0;
   const groups = useMemo(() => groupByDate(txs), [txs]);
 
-  const ledgerTone =
-    snap.balance < 0
-      ? "ledger-card--error"
-      : health.grade === "A"
-        ? "ledger-card--success"
-        : health.grade === "B"
-          ? "ledger-card--gold"
-          : health.grade === "C"
-            ? "ledger-card--warning"
-            : "ledger-card--error";
-
   return (
-    <div className="space-y-8 max-w-2xl mx-auto animate-fade-in">
+    <div className="space-y-8 max-w-2xl mx-auto">
 
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          {name && <p className="section-label mb-1">Bonjour, {name}</p>}
-          <h1 className="font-display text-xl text-on-surface tracking-tight">
-            {MN[month]} {year}
-          </h1>
-        </div>
-        <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
-      </div>
+      <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
 
       {/* Balance card */}
       {loading ? (
         <Skeleton variant="rectangular" className="h-48 rounded-2xl" />
       ) : (
-        <div className={`ledger-card ${ledgerTone} rounded-2xl p-5 bg-surface-container ${snap.balance < 0 ? "bg-error/[0.04]" : ""}`}>
-          <div>
+        <div className={`rounded-2xl p-5 relative overflow-hidden ${snap.balance >= 0 ? "bg-surface-container" : "bg-error/[0.06] border border-error/15"}`}>
+          {snap.balance < 0 && <div className="absolute -top-20 -right-20 w-40 h-40 bg-error/10 rounded-full blur-3xl" />}
+
+          <div className="relative">
             <div className="flex items-center justify-between mb-4">
-              <p className="section-label">Solde disponible</p>
+              <p className="text-[13px] text-on-surface-variant">Solde disponible</p>
               {hasData && (
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-display ${health.grade === "A" ? "bg-success/15 text-success" : health.grade === "B" ? "bg-tertiary/15 text-tertiary" : health.grade === "C" ? "bg-warning/15 text-warning" : "bg-error/15 text-error"}`}>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${health.grade === "A" ? "bg-success/15 text-success" : health.grade === "B" ? "bg-primary/15 text-primary" : health.grade === "C" ? "bg-warning/15 text-warning" : "bg-error/15 text-error"}`}>
                   <span>{health.grade}</span>
-                  <span className="text-on-surface-variant font-sans font-normal">{health.score}/100</span>
+                  <span className="text-on-surface-variant font-normal">{health.score}/100</span>
                 </div>
               )}
             </div>
 
-            <p className={`font-amount text-[28px] sm:text-[34px] md:text-[40px] leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
+            <p className={`text-[26px] sm:text-[32px] md:text-[38px] font-extrabold tracking-tight tabular-nums leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
               {formatAmount(snap.balance)}
             </p>
 
@@ -168,22 +148,22 @@ export default function DashboardPage() {
 
       {/* Daily Budget */}
       {!loading && isCurrent && snap.daysRemaining > 0 && snap.totalRevenus > 0 && (
-        <div className="ledger-card ledger-card--gold flex items-center gap-3 bg-surface-container rounded-2xl p-4">
-          <div className="w-10 h-10 rounded-xl bg-tertiary/15 flex items-center justify-center shrink-0">
-            <Icon name="today" size={20} className="text-tertiary" />
+        <div className="flex items-center gap-3 bg-surface-container rounded-2xl p-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+            <Icon name="today" size={20} className="text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[15px] font-medium text-on-surface">Budget quotidien</p>
             <p className="text-[12px] text-on-surface-variant">{snap.daysRemaining} jours restants</p>
           </div>
-          <p className="font-amount text-[15px] text-tertiary" suppressHydrationWarning>{formatAmount(snap.dailyBudgetRemaining)}</p>
+          <p className="text-[15px] font-bold text-primary tabular-nums" suppressHydrationWarning>{formatAmount(snap.dailyBudgetRemaining)}</p>
         </div>
       )}
 
       {/* Budget envelopes */}
       {envs.length > 0 && (
         <div>
-          <p className="section-label mb-3">Enveloppes</p>
+          <p className="text-[13px] font-medium text-on-surface-variant mb-3">Budget</p>
           <div className="grid grid-cols-2 gap-2">
             {envs.map(env => {
               const d = snap.envelopeDetails.find(e => e.id === env.id);
@@ -195,7 +175,7 @@ export default function DashboardPage() {
 
       {/* Activity — date-grouped transactions */}
       <div>
-        <p className="section-label mb-3">Activité récente</p>
+        <p className="text-[13px] font-medium text-on-surface-variant mb-3">Activité récente</p>
 
         {loading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} variant="rectangular" className="h-14 rounded-xl" />)}</div>
@@ -245,7 +225,7 @@ export default function DashboardPage() {
       {/* Trend */}
       {!loading && trend.some(d => d.value !== 0) && (
         <div>
-          <p className="section-label mb-3">Tendance · 6 mois</p>
+          <p className="text-[13px] font-medium text-on-surface-variant mb-3">Tendance</p>
           <div className="bg-surface-container rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[13px] font-medium text-on-surface">Épargne</span>

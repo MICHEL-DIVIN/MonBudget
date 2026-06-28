@@ -30,7 +30,7 @@ export default function EnvelopeCard({ name, icon, amount, remaining, color, cla
 
   return (
     <div
-      className={`ledger-card bg-surface-container rounded-2xl p-4 flex flex-col items-center text-center border border-outline-variant/10 ${onClick ? "active:scale-[0.97] cursor-pointer" : ""} transition-transform duration-150 ${className}`}
+      className={`bg-surface-container rounded-2xl p-4 flex flex-col items-center text-center ${onClick ? "active:scale-[0.97] cursor-pointer" : ""} transition-transform duration-150 ${className}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
     >
