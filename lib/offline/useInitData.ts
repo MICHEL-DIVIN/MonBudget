@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { getDB, clearAllData } from "./db";
 import { supabase } from "@/lib/supabase/client";
 import { generateRecurringTransactions } from "./recurring";
+import { notifyDataChanged } from "./events";
 import { useAuth } from "@/lib/auth/provider";
 
 const LAST_USER_KEY = "monbudget-last-user-id";
@@ -35,9 +36,9 @@ export function useInitData() {
       const userEnvelopes = existingEnvelopes.filter(
         (e: Record<string, unknown>) => e.user_id === userId && !e._deleted
       );
-      if (userEnvelopes.length > 0) return;
+      const needsBootstrap = userEnvelopes.length === 0;
 
-      try {
+      if (needsBootstrap) try {
         const [envelopesRes, revenusRes, depensesRes, objectifsRes, profilesRes] =
           await Promise.all([
             supabase.from("envelopes").select("*").eq("user_id", userId),
@@ -81,7 +82,8 @@ export function useInitData() {
       }
 
       try {
-        await generateRecurringTransactions();
+        const created = await generateRecurringTransactions(userId);
+        if (created.created > 0 || created.migrated > 0) notifyDataChanged();
       } catch {
         // Not critical
       }

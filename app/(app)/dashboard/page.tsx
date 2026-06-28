@@ -8,7 +8,9 @@ import MonthSelector from "@/app/_components/charts/MonthSelector";
 import EnvelopeCard from "@/app/_components/budget/EnvelopeCard";
 import Skeleton from "@/app/_components/ui/Skeleton";
 import { useOfflineData } from "@/lib/offline/hooks";
-import { computeMonthlySnapshot, computeBudgetHealth, totalRevenus, totalDepenses } from "@/lib/utils/calculations";
+import { computeMonthlySnapshot, computeBudgetHealth, totalRevenus, totalDepenses, filterByMonth } from "@/lib/utils/calculations";
+import { compareDateStrings, toLocalDate } from "@/lib/utils/dates";
+import { useTransactionForm } from "@/lib/transaction-form/context";
 import { formatDate } from "@/lib/utils/format";
 import { useCurrency } from "@/lib/currency/provider";
 import type { Depense, Envelope, Profile, Revenu } from "@/lib/supabase/types";
@@ -40,8 +42,8 @@ function groupByDate(txs: { id: string; label: string; amount: number; sortDate:
   const map = new Map<string, typeof txs>();
 
   for (const tx of txs) {
-    const d = new Date(tx.sortDate).toDateString();
-    const label = d === today ? "Aujourd'hui" : d === yesterday ? "Hier" : new Date(tx.sortDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    const d = toLocalDate(tx.sortDate).toDateString();
+    const label = d === today ? "Aujourd'hui" : d === yesterday ? "Hier" : toLocalDate(tx.sortDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
     if (!map.has(label)) map.set(label, []);
     map.get(label)!.push(tx);
   }
@@ -62,6 +64,7 @@ export default function DashboardPage() {
   const { data: profiles } = useOfflineData<Profile>("profiles");
 
   const { formatAmount } = useCurrency();
+  const { openForm } = useTransactionForm();
   const name = profiles.length > 0 ? profiles[0].full_name.split(" ")[0] : "";
   const loading = l1 || l2 || l3;
   const isCurrent = month === new Date().getMonth() && year === new Date().getFullYear();
@@ -69,16 +72,16 @@ export default function DashboardPage() {
   const snap = useMemo(() => computeMonthlySnapshot(allRev, allDep, envs, month, year), [allRev, allDep, envs, month, year]);
   const health = useMemo(() => computeBudgetHealth(snap), [snap]);
 
-  const mDep = useMemo(() => allDep.filter(d => { const dt = new Date(d.date); return dt.getMonth() === month && dt.getFullYear() === year; }), [allDep, month, year]);
-  const mRev = useMemo(() => allRev.filter(r => { const dt = new Date(r.date); return dt.getMonth() === month && dt.getFullYear() === year; }), [allRev, month, year]);
+  const mDep = useMemo(() => filterByMonth(allDep, month, year) as Depense[], [allDep, month, year]);
+  const mRev = useMemo(() => filterByMonth(allRev, month, year) as Revenu[], [allRev, month, year]);
 
   const trend = useMemo(() => {
     const out = [];
     for (let i = 5; i >= 0; i--) {
       let m = month - i, y = year;
       if (m < 0) { m += 12; y--; }
-      const md = allDep.filter(d => { const dt = new Date(d.date); return dt.getMonth() === m && dt.getFullYear() === y; });
-      const mr = allRev.filter(r => { const dt = new Date(r.date); return dt.getMonth() === m && dt.getFullYear() === y; });
+      const md = filterByMonth(allDep, m, y) as Depense[];
+      const mr = filterByMonth(allRev, m, y) as Revenu[];
       out.push({ label: MS[m], value: totalRevenus(mr) - totalDepenses(md) });
     }
     return out;
@@ -87,37 +90,53 @@ export default function DashboardPage() {
   const txs = useMemo(() => {
     const deps = mDep.map(x => { const ic = txIcon(x.label); const envName = x.envelope_id ? envs.find(e => e.id === x.envelope_id)?.name : null; return { id: x.id, label: x.label, amount: x.amount, sortDate: x.date, date: formatDate(x.date), icon: ic.icon, iconBg: ic.bg, iconText: ic.text, type: "expense" as const, sub: envName || (x.category === "fixe" ? "Dépense fixe" : "Dépense variable") }; });
     const revs = mRev.map(x => { const ic = txIcon(x.label); return { id: x.id, label: x.label, amount: x.amount, sortDate: x.date, date: formatDate(x.date), icon: ic.icon, iconBg: ic.bg, iconText: ic.text, type: "income" as const, sub: x.category === "principal" ? "Revenu principal" : "Revenu secondaire" }; });
-    return [...deps, ...revs].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime()).slice(0, 12);
+    return [...deps, ...revs].sort((a, b) => compareDateStrings(a.sortDate, b.sortDate)).slice(0, 12);
   }, [mDep, mRev]);
 
   const hasData = snap.totalRevenus > 0 || snap.totalDepenses > 0;
   const groups = useMemo(() => groupByDate(txs), [txs]);
 
-  return (
-    <div className="space-y-8 max-w-2xl mx-auto">
+  const ledgerTone =
+    snap.balance < 0
+      ? "ledger-card--error"
+      : health.grade === "A"
+        ? "ledger-card--success"
+        : health.grade === "B"
+          ? "ledger-card--gold"
+          : health.grade === "C"
+            ? "ledger-card--warning"
+            : "ledger-card--error";
 
-      <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
+  return (
+    <div className="space-y-8 max-w-2xl mx-auto animate-fade-in">
+
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          {name && <p className="section-label mb-1">Bonjour, {name}</p>}
+          <h1 className="font-display text-xl text-on-surface tracking-tight">
+            {MN[month]} {year}
+          </h1>
+        </div>
+        <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
+      </div>
 
       {/* Balance card */}
       {loading ? (
         <Skeleton variant="rectangular" className="h-48 rounded-2xl" />
       ) : (
-        <div className={`rounded-2xl p-5 relative overflow-hidden ${snap.balance >= 0 ? "bg-surface-container" : "bg-error/[0.06] border border-error/15"}`}>
-          {/* Subtle glow for negative */}
-          {snap.balance < 0 && <div className="absolute -top-20 -right-20 w-40 h-40 bg-error/10 rounded-full blur-3xl" />}
-
-          <div className="relative">
+        <div className={`ledger-card ${ledgerTone} rounded-2xl p-5 bg-surface-container ${snap.balance < 0 ? "bg-error/[0.04]" : ""}`}>
+          <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[13px] text-on-surface-variant">Solde disponible</p>
+              <p className="section-label">Solde disponible</p>
               {hasData && (
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${health.grade === "A" ? "bg-success/15 text-success" : health.grade === "B" ? "bg-primary/15 text-primary" : health.grade === "C" ? "bg-warning/15 text-warning" : "bg-error/15 text-error"}`}>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-display ${health.grade === "A" ? "bg-success/15 text-success" : health.grade === "B" ? "bg-tertiary/15 text-tertiary" : health.grade === "C" ? "bg-warning/15 text-warning" : "bg-error/15 text-error"}`}>
                   <span>{health.grade}</span>
-                  <span className="text-on-surface-variant font-normal">{health.score}/100</span>
+                  <span className="text-on-surface-variant font-sans font-normal">{health.score}/100</span>
                 </div>
               )}
             </div>
 
-            <p className={`text-[26px] sm:text-[32px] md:text-[38px] font-extrabold tracking-tight tabular-nums leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
+            <p className={`font-amount text-[28px] sm:text-[34px] md:text-[40px] leading-none ${snap.balance >= 0 ? "text-on-surface" : "text-error"}`} suppressHydrationWarning>
               {formatAmount(snap.balance)}
             </p>
 
@@ -149,22 +168,22 @@ export default function DashboardPage() {
 
       {/* Daily Budget */}
       {!loading && isCurrent && snap.daysRemaining > 0 && snap.totalRevenus > 0 && (
-        <div className="flex items-center gap-3 bg-surface-container rounded-2xl p-4">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-            <Icon name="today" size={20} className="text-primary" />
+        <div className="ledger-card ledger-card--gold flex items-center gap-3 bg-surface-container rounded-2xl p-4">
+          <div className="w-10 h-10 rounded-xl bg-tertiary/15 flex items-center justify-center shrink-0">
+            <Icon name="today" size={20} className="text-tertiary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[15px] font-medium text-on-surface">Budget quotidien</p>
             <p className="text-[12px] text-on-surface-variant">{snap.daysRemaining} jours restants</p>
           </div>
-          <p className="text-[15px] font-semibold text-primary tabular-nums" suppressHydrationWarning>{formatAmount(snap.dailyBudgetRemaining)}</p>
+          <p className="font-amount text-[15px] text-tertiary" suppressHydrationWarning>{formatAmount(snap.dailyBudgetRemaining)}</p>
         </div>
       )}
 
       {/* Budget envelopes */}
       {envs.length > 0 && (
         <div>
-          <p className="text-[13px] font-medium text-on-surface-variant mb-3">Budget</p>
+          <p className="section-label mb-3">Enveloppes</p>
           <div className="grid grid-cols-2 gap-2">
             {envs.map(env => {
               const d = snap.envelopeDetails.find(e => e.id === env.id);
@@ -176,7 +195,7 @@ export default function DashboardPage() {
 
       {/* Activity — date-grouped transactions */}
       <div>
-        <p className="text-[13px] font-medium text-on-surface-variant mb-3">Activite récente</p>
+        <p className="section-label mb-3">Activité récente</p>
 
         {loading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} variant="rectangular" className="h-14 rounded-xl" />)}</div>
@@ -210,11 +229,11 @@ export default function DashboardPage() {
             <p className="text-[15px] font-medium text-on-surface">Pas encore de transactions</p>
             <p className="text-[13px] text-on-surface-variant mt-1 mb-4">Commencez par ajouter votre premier revenu ou dépense</p>
             <div className="flex items-center justify-center gap-3">
-              <button className="flex items-center gap-1.5 bg-success/15 text-success px-4 py-2 rounded-xl text-[13px] font-medium active:scale-95 transition-transform">
+              <button type="button" onClick={() => openForm("income")} className="flex items-center gap-1.5 bg-success/15 text-success px-4 py-2 rounded-xl text-[13px] font-medium active:scale-95 transition-transform">
                 <span className="material-symbols-outlined text-base">arrow_downward</span>
                 Revenu
               </button>
-              <button className="flex items-center gap-1.5 bg-error/15 text-error px-4 py-2 rounded-xl text-[13px] font-medium active:scale-95 transition-transform">
+              <button type="button" onClick={() => openForm("expense")} className="flex items-center gap-1.5 bg-error/15 text-error px-4 py-2 rounded-xl text-[13px] font-medium active:scale-95 transition-transform">
                 <span className="material-symbols-outlined text-base">arrow_upward</span>
                 Dépense
               </button>
@@ -226,7 +245,7 @@ export default function DashboardPage() {
       {/* Trend */}
       {!loading && trend.some(d => d.value !== 0) && (
         <div>
-          <p className="text-[13px] font-medium text-on-surface-variant mb-3">Tendance</p>
+          <p className="section-label mb-3">Tendance · 6 mois</p>
           <div className="bg-surface-container rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[13px] font-medium text-on-surface">Épargne</span>

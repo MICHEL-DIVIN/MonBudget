@@ -1,9 +1,23 @@
 import { getDB } from "./db";
+import { processQueue } from "./sync-queue";
+import { generateRecurringTransactions } from "./recurring";
+import { notifyDataChanged, notifySyncError } from "./events";
 import { supabase } from "@/lib/supabase/client";
-import { v4 as uuidv4 } from "uuid";
-import type { SyncQueueItem } from "@/lib/supabase/types";
 
-const SYNCABLE_STORES = ["revenus", "depenses", "envelopes", "objectifs"] as const;
+const SYNCABLE_STORES = ["revenus", "depenses", "envelopes", "objectifs", "profiles"] as const;
+const SYNC_DEBOUNCE_MS = 800;
+
+let syncInProgress = false;
+let syncPending = false;
+let pullInProgress = false;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let debounceResolvers: Array<() => void> = [];
+
+export { enqueueSync } from "./sync-queue";
+
+export function isPullInProgress(): boolean {
+  return pullInProgress;
+}
 
 function isAuthError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
@@ -21,116 +35,119 @@ function getCurrentUserId(): string | null {
   }
 }
 
-export async function enqueueSync(
-  store: string,
-  operation: SyncQueueItem["operation"],
-  data: Record<string, unknown>
-): Promise<void> {
-  const db = await getDB();
-  const item: SyncQueueItem = {
-    id: uuidv4(),
-    store,
-    operation,
-    data,
-    created_at: new Date().toISOString(),
-  };
-  await db.put("sync_queue", item);
+const SYNC_META_KEYS = new Set(["_dirty", "_deleted"]);
+
+function remoteRowsEqual(
+  existing: Record<string, unknown> | undefined,
+  row: Record<string, unknown>
+): boolean {
+  const keys = new Set([
+    ...Object.keys(existing ?? {}),
+    ...Object.keys(row),
+  ]);
+  for (const key of keys) {
+    if (SYNC_META_KEYS.has(key)) continue;
+    if (JSON.stringify(existing?.[key]) !== JSON.stringify(row[key])) return false;
+  }
+  return true;
 }
 
-export async function processQueue(): Promise<void> {
+export async function pullFromSupabase(): Promise<boolean> {
   const db = await getDB();
-  const items = await db.getAll("sync_queue");
   const userId = getCurrentUserId();
+  if (!userId) return false;
 
-  for (const item of items) {
-    try {
-      const table = item.store;
-      const itemUserId = item.data.user_id as string | undefined;
-      if (userId && itemUserId && itemUserId !== userId) {
-        await db.delete("sync_queue", item.id);
-        continue;
-      }
+  pullInProgress = true;
+  let changed = false;
 
-      let syncError = null;
+  try {
+    for (const store of SYNCABLE_STORES) {
+      try {
+        const isProfile = store === "profiles";
+        const query = supabase.from(store).select("*");
+        const { data, error } = (isProfile
+          ? await query.eq("id", userId)
+          : await query.eq("user_id", userId)) as { data: Record<string, unknown>[] | null; error: { status?: number; message?: string } | null };
 
-      if (item.operation === "create") {
-        const { _dirty, _deleted, ...cleanData } = item.data as Record<string, unknown>;
-        const { error } = await supabase.from(table).upsert(cleanData);
-        syncError = error;
-      } else if (item.operation === "update") {
-        const { _dirty, _deleted, id, created_at, user_id, ...updates } = item.data as Record<string, unknown>;
-        const { error } = await supabase.from(table).update(updates).eq("id", id);
-        syncError = error;
-      } else if (item.operation === "delete") {
-        const { error } = await supabase.from(table).delete().eq("id", item.data.id as string);
-        syncError = error;
-      }
+        if (error) {
+          if (isAuthError(error)) continue;
+          continue;
+        }
+        if (!data) continue;
 
-      if (syncError) {
-        if (isAuthError(syncError)) { await supabase.auth.signOut(); return; }
-        continue;
-      }
-
-      if (item.operation !== "delete" && item.data.id) {
-        try {
-          const record = await db.get(table as unknown as never, item.data.id as string);
-          if (record) {
-            (record as Record<string, unknown>)._dirty = false;
-            await db.put(table as unknown as never, record as never);
+        const tx = db.transaction(store, "readwrite");
+        for (const row of data) {
+          if (!isProfile && row.user_id !== userId) continue;
+          if (isProfile && row.id !== userId) continue;
+          const rowId = row.id as string;
+          const existing = await tx.store.get(rowId) as Record<string, unknown> | undefined;
+          if (!existing || !existing._dirty) {
+            const next = { ...row, _dirty: false, _deleted: false };
+            if (!remoteRowsEqual(existing, row)) {
+              changed = true;
+              await tx.store.put(next as never);
+            }
           }
-        } catch { /* non-critical */ }
-      }
-
-      await db.delete("sync_queue", item.id);
-    } catch (err) {
-      if (isAuthError(err)) {
-        await supabase.auth.signOut();
-        return;
+        }
+        await tx.done;
+      } catch {
+        /* continue other stores */
       }
     }
+  } finally {
+    pullInProgress = false;
   }
-}
 
-export async function pullFromSupabase(): Promise<void> {
-  const db = await getDB();
-  const userId = getCurrentUserId();
-  if (!userId) return;
-
-  for (const store of SYNCABLE_STORES) {
-    try {
-      const { data, error } = await supabase
-        .from(store)
-        .select("*")
-        .eq("user_id", userId) as { data: Record<string, unknown>[] | null; error: { status?: number; message?: string } | null };
-
-      if (error) {
-        if (isAuthError(error)) {
-          await supabase.auth.signOut();
-          return;
-        }
-        continue;
-      }
-      if (!data) continue;
-
-      const tx = db.transaction(store, "readwrite");
-      for (const row of data) {
-        if (row.user_id !== userId) continue;
-        const existing = await tx.store.get(row.id as string);
-        if (!existing || !existing._dirty) {
-          await tx.store.put({ ...row, _dirty: false, _deleted: false } as never);
-        }
-      }
-      await tx.done;
-    } catch (err) {
-      if (isAuthError(err)) {
-        await supabase.auth.signOut();
-        return;
-      }
-    }
-  }
+  return changed;
 }
 
 export async function syncAll(): Promise<void> {
-  await processQueue();
-  await pullFromSupabase();
+  if (syncInProgress) {
+    syncPending = true;
+    return;
+  }
+
+  syncInProgress = true;
+  try {
+    const queueResult = await processQueue();
+    if (queueResult.failed > 0 && queueResult.lastMessage) {
+      notifySyncError(queueResult.lastMessage);
+    }
+    const pulled = await pullFromSupabase();
+    let recurringCreated = 0;
+    let recurringMigrated = 0;
+    try {
+      const recurringResult = await generateRecurringTransactions(getCurrentUserId() ?? undefined);
+      recurringCreated = recurringResult.created;
+      recurringMigrated = recurringResult.migrated;
+    } catch { /* not critical */ }
+
+    if (pulled || recurringCreated > 0 || recurringMigrated > 0) {
+      notifyDataChanged();
+    }
+  } finally {
+    syncInProgress = false;
+    if (syncPending) {
+      syncPending = false;
+      await syncAll();
+    }
+  }
+}
+
+/** Debounced entry point for Realtime / online events. */
+export function scheduleSyncAll(): Promise<void> {
+  return new Promise((resolve) => {
+    debounceResolvers.push(resolve);
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      debounceTimer = null;
+      const resolvers = debounceResolvers;
+      debounceResolvers = [];
+      try {
+        await syncAll();
+      } finally {
+        resolvers.forEach((r) => r());
+      }
+    }, SYNC_DEBOUNCE_MS);
+  });
 }

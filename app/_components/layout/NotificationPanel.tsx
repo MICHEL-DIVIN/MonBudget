@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth/provider";
 import { useOfflineData } from "@/lib/offline/hooks";
 import { useCurrency } from "@/lib/currency/provider";
 import { filterByMonth, totalDepenses, totalRevenus } from "@/lib/utils/calculations";
+import { areBudgetAlertsEnabled, areNotificationsEnabled } from "@/lib/notifications/prefs";
 import type { Revenu, Depense, Envelope, Objectif, AppNotification } from "@/lib/supabase/types";
 
 interface NotifItem {
@@ -66,16 +67,20 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
 
   const localAlerts = useMemo(() => {
     const items: NotifItem[] = [];
+    if (!areNotificationsEnabled()) return items;
+
     const monthRev = filterByMonth(revenus, month, year) as Revenu[];
     const monthDep = filterByMonth(depenses, month, year) as Depense[];
     const totRev = totalRevenus(monthRev);
     const totDep = totalDepenses(monthDep);
     const balance = totRev - totDep;
+    const budgetAlerts = areBudgetAlertsEnabled();
 
-    if (balance < 0) {
+    if (budgetAlerts && balance < 0) {
       items.push({ id: "neg", icon: "warning", color: "text-error", bg: "bg-error/15", title: "Solde négatif", message: `Dépenses dépassent les revenus de ${formatAmount(Math.abs(balance))}`, type: "warning", read: false, fromServer: false });
     }
 
+    if (budgetAlerts) {
     for (const env of envelopes) {
       const spent = monthDep.filter((d) => d.envelope_id === env.id).reduce((s, d) => s + Number(d.amount), 0);
       if (env.budgeted > 0 && spent > env.budgeted) {
@@ -83,6 +88,7 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
       } else if (env.budgeted > 0 && spent > env.budgeted * 0.8) {
         items.push({ id: `envw-${env.id}`, icon: "account_balance_wallet", color: "text-warning", bg: "bg-warning/15", title: `${env.name} bientôt épuisée`, message: `${Math.round((spent / env.budgeted) * 100)}% utilisés`, type: "warning", read: false, fromServer: false });
       }
+    }
     }
 
     for (const obj of objectifs) {

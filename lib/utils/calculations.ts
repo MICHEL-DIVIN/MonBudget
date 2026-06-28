@@ -1,4 +1,5 @@
 import type { Revenu, Depense, Envelope } from "@/lib/supabase/types";
+import { sameCalendarMonth, sameCalendarYear } from "@/lib/utils/dates";
 
 export function totalRevenus(revenus: Revenu[]): number {
   return revenus.reduce((sum, r) => sum + r.amount, 0);
@@ -50,20 +51,14 @@ export function filterByMonth(
   month: number,
   year: number
 ): any[] {
-  return items.filter((item) => {
-    const d = new Date(item.date);
-    return d.getMonth() === month && d.getFullYear() === year;
-  });
+  return items.filter((item) => sameCalendarMonth(item.date, year, month));
 }
 
 export function filterByYear(
   items: Array<{ date: string }>,
   year: number
 ): any[] {
-  return items.filter((item) => {
-    const d = new Date(item.date);
-    return d.getFullYear() === year;
-  });
+  return items.filter((item) => sameCalendarYear(item.date, year));
 }
 
 // --- Monthly Snapshot ---

@@ -20,27 +20,35 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
-export default function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+function readSavedTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  return (localStorage.getItem("monbudget-theme") as Theme | null) ?? "dark";
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem("monbudget-theme") as Theme | null;
-    if (saved) setThemeState(saved);
-  }, []);
+function resolveTheme(theme: Theme): "light" | "dark" {
+  if (theme === "light") return "light";
+  if (theme === "dark") return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export default function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(readSavedTheme);
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
+    typeof window === "undefined" ? "dark" : resolveTheme(readSavedTheme())
+  );
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function resolve() {
-      const isDark = theme === "dark" || (theme === "system" && mq.matches);
-      setResolvedTheme(isDark ? "dark" : "light");
-      document.documentElement.classList.toggle("dark", isDark);
+    function apply() {
+      const resolved = resolveTheme(theme);
+      setResolvedTheme(resolved);
+      document.documentElement.classList.toggle("dark", resolved === "dark");
     }
 
-    resolve();
-    mq.addEventListener("change", resolve);
-    return () => mq.removeEventListener("change", resolve);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {

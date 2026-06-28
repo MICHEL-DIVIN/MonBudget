@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
@@ -11,6 +12,7 @@ import { useOfflineData } from "@/lib/offline/hooks";
 import { filterByMonth } from "@/lib/utils/calculations";
 import { useToast } from "@/app/_components/ui/Toast";
 import { useUserId } from "@/lib/auth/provider";
+import { TransactionFormProvider } from "@/lib/transaction-form/context";
 import type { Depense, Revenu, Envelope } from "@/lib/supabase/types";
 
 const incomeCategories = [
@@ -19,6 +21,17 @@ const incomeCategories = [
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isOnboarding = pathname === "/onboarding";
+
+  if (isOnboarding) {
+    return (
+      <div className="min-h-[100dvh] bg-background">
+        <main className="px-5 py-4">{children}</main>
+      </div>
+    );
+  }
+
   const userId = useUserId();
   const [showForm, setShowForm] = useState<"expense" | "income" | null>(null);
   const { data: allDepenses, addItem: addDepense } = useOfflineData<Depense>("depenses");
@@ -87,29 +100,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-background overflow-hidden">
-      <Sidebar />
+    <TransactionFormProvider openForm={(type) => setShowForm(type)}>
+      <div className="flex h-[100dvh] bg-background overflow-hidden">
+        <Sidebar />
 
-      <div className="flex flex-1 flex-col min-w-0 md:ml-[264px]">
-        <TopBar />
-        <main className="flex-1 overflow-y-auto overscroll-contain px-5 pt-2 pb-28 md:px-8 md:pt-4 md:pb-6 scroll-smooth">
-          {children}
-        </main>
+        <div className="flex flex-1 flex-col min-w-0 md:ml-[264px]">
+          <TopBar />
+          <main className="flex-1 overflow-y-auto overscroll-contain px-5 pt-2 pb-28 md:px-8 md:pt-4 md:pb-6 scroll-smooth">
+            {children}
+          </main>
+        </div>
+
+        <BottomNav />
+        <FAB
+          onAddExpense={() => setShowForm("expense")}
+          onAddIncome={() => setShowForm("income")}
+        />
+
+        <BottomSheet isOpen={showForm === "expense"} onClose={() => setShowForm(null)} title="Nouvelle dépense">
+          <AddTransactionForm type="expense" onSubmit={handleAddExpense} onCancel={() => setShowForm(null)} categories={expenseCategories} envelopeRemaining={envelopeRemaining} />
+        </BottomSheet>
+
+        <BottomSheet isOpen={showForm === "income"} onClose={() => setShowForm(null)} title="Nouveau revenu">
+          <AddTransactionForm type="income" onSubmit={handleAddIncome} onCancel={() => setShowForm(null)} categories={incomeCategories} />
+        </BottomSheet>
       </div>
-
-      <BottomNav />
-      <FAB
-        onAddExpense={() => setShowForm("expense")}
-        onAddIncome={() => setShowForm("income")}
-      />
-
-      <BottomSheet isOpen={showForm === "expense"} onClose={() => setShowForm(null)} title="Nouvelle dépense">
-        <AddTransactionForm type="expense" onSubmit={handleAddExpense} onCancel={() => setShowForm(null)} categories={expenseCategories} envelopeRemaining={envelopeRemaining} />
-      </BottomSheet>
-
-      <BottomSheet isOpen={showForm === "income"} onClose={() => setShowForm(null)} title="Nouveau revenu">
-        <AddTransactionForm type="income" onSubmit={handleAddIncome} onCancel={() => setShowForm(null)} categories={incomeCategories} />
-      </BottomSheet>
-    </div>
+    </TransactionFormProvider>
   );
 }

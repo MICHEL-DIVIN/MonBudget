@@ -302,7 +302,13 @@ CREATE POLICY "notif_select" ON public.notifications
 -- User peut marquer ses notifs comme lues
 CREATE POLICY "notif_update" ON public.notifications
   FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
--- Seuls les admins peuvent créer des notifications
+-- Utilisateur : notifications auto (engine.ts, objectifs)
+CREATE POLICY "notif_insert_self" ON public.notifications
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid()
+    AND (created_by IS NULL OR created_by = auth.uid())
+  );
+-- Admin : notifications promo / broadcast
 CREATE POLICY "notif_insert_admin" ON public.notifications
   FOR INSERT WITH CHECK (public.is_admin());
 -- Seuls les admins peuvent supprimer
@@ -317,6 +323,8 @@ CREATE POLICY "push_select" ON public.push_subscriptions
   FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
 CREATE POLICY "push_insert" ON public.push_subscriptions
   FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "push_update" ON public.push_subscriptions
+  FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 CREATE POLICY "push_delete" ON public.push_subscriptions
   FOR DELETE USING (user_id = auth.uid());
 

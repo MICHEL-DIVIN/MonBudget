@@ -14,7 +14,7 @@ export default function Card({ children, className = "", padding = "md", onClick
     <div
       onClick={onClick}
       className={`
-        rounded-2xl bg-surface-container
+        rounded-2xl bg-surface-container border border-outline-variant/10
         ${paddingMap[padding]}
         ${onClick ? "hover:shadow-card-hover cursor-pointer active:scale-[0.98] transition-all" : ""}
         ${className}

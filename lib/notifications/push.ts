@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth/provider";
 import { supabase } from "@/lib/supabase/client";
+import { areNotificationsEnabled } from "@/lib/notifications/prefs";
 
 export function usePushNotifications() {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (!user || registered.current) return;
+    if (!areNotificationsEnabled()) return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (Notification.permission === "denied") return;
 

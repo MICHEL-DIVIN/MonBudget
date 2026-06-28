@@ -14,6 +14,7 @@ import AddTransactionForm from "@/app/_components/budget/AddTransactionForm";
 import Skeleton from "@/app/_components/ui/Skeleton";
 import { useOfflineData } from "@/lib/offline/hooks";
 import { filterByMonth, depensesByCategory, envelopeSpent } from "@/lib/utils/calculations";
+import { compareDateStrings } from "@/lib/utils/dates";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/app/_components/ui/Toast";
 import { useUserId } from "@/lib/auth/provider";
@@ -75,7 +76,7 @@ export default function DepensesPage() {
   const transactions = useMemo(
     () =>
       filteredDepenses
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => compareDateStrings(a.date, b.date))
         .map((d) => {
           const ic = getIconForLabel(d.label);
           const envName = d.envelope_id ? envelopes.find(e => e.id === d.envelope_id)?.name : null;

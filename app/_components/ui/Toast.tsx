@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { SYNC_ERROR_EVENT } from "@/lib/offline/events";
 
 interface ToastItem {
   id: number;
@@ -28,6 +29,15 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   }, []);
+
+  useEffect(() => {
+    function onSyncError(e: Event) {
+      const message = (e as CustomEvent<string>).detail;
+      if (message) toast(message, "error");
+    }
+    window.addEventListener(SYNC_ERROR_EVENT, onSyncError);
+    return () => window.removeEventListener(SYNC_ERROR_EVENT, onSyncError);
+  }, [toast]);
 
   const iconMap = { success: "check_circle", error: "error", info: "info" };
   const colorMap = { success: "#22c55e", error: "#ef4444", info: "#8b5cf6" };

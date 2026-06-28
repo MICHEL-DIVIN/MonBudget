@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Source_Sans_3 } from "next/font/google";
 import "./icons.css";
 import "./globals.css";
 import OfflineProvider from "@/lib/offline/provider";
@@ -8,11 +8,18 @@ import CurrencyProvider from "@/lib/currency/provider";
 import ThemeProvider from "@/lib/theme/provider";
 import ServiceWorkerRegistrar from "@/app/_components/ServiceWorkerRegistrar";
 import PWAInstallPrompt from "@/app/_components/PWAInstallPrompt";
+import I18nProvider from "@/lib/i18n/provider";
 import ToastProvider from "@/app/_components/ui/Toast";
 
-const inter = Inter({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-display",
+  display: "swap",
+});
+
+const sourceSans = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-ui",
   display: "swap",
 });
 
@@ -31,11 +38,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
+  themeColor: "#0b0b12",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -45,17 +50,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html lang="fr" className={`${fraunces.variable} ${sourceSans.variable} h-full`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('monbudget-theme');var d=t==='dark'||(t!=='light'&&(t==='system'?window.matchMedia('(prefers-color-scheme: dark)').matches:true));document.documentElement.classList.toggle('dark',d);}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
       </head>
       <body className="min-h-full font-sans antialiased">
         <AuthProvider>
-          <OfflineProvider>
-            <CurrencyProvider>
-              <ThemeProvider><ToastProvider>{children}</ToastProvider></ThemeProvider>
-            </CurrencyProvider>
-          </OfflineProvider>
+          <I18nProvider>
+            <OfflineProvider>
+              <CurrencyProvider>
+                <ThemeProvider><ToastProvider>{children}</ToastProvider></ThemeProvider>
+              </CurrencyProvider>
+            </OfflineProvider>
+          </I18nProvider>
         </AuthProvider>
         <ServiceWorkerRegistrar />
         <PWAInstallPrompt />

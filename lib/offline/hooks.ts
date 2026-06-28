@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { getDB } from "./db";
-import { enqueueSync } from "./sync";
+import { enqueueSync } from "./sync-queue";
 import { v4 as uuidv4 } from "uuid";
+import { DATA_CHANGED_EVENT } from "./events";
 import { useUserId } from "@/lib/auth/provider";
 
 function subscribe(cb: () => void) {
@@ -52,6 +53,9 @@ export function useOfflineData<T extends { id: string }>(storeName: string) {
 
   useEffect(() => {
     loadData();
+    const onChange = () => { loadData(); };
+    window.addEventListener(DATA_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(DATA_CHANGED_EVENT, onChange);
   }, [loadData]);
 
   const addItem = useCallback(
@@ -72,8 +76,12 @@ export function useOfflineData<T extends { id: string }>(storeName: string) {
         _dirty: true,
         _deleted: false,
       };
-      if (storeName !== "profiles" && !(newItem as Record<string, unknown>).user_id) {
-        (newItem as Record<string, unknown>).user_id = userId;
+      const stored = newItem as Record<string, unknown>;
+      if (stored.recurring === true && !stored.recurring_group_id) {
+        stored.recurring_group_id = uuidv4();
+      }
+      if (storeName !== "profiles" && !stored.user_id) {
+        stored.user_id = userId;
       }
       await db.put(storeName as unknown as never, newItem as never);
       await enqueueSync(storeName, "create", newItem as Record<string, unknown>);
@@ -100,6 +108,10 @@ export function useOfflineData<T extends { id: string }>(storeName: string) {
         updated_at: new Date().toISOString(),
         _dirty: true,
       };
+      const updRecord = updated as Record<string, unknown>;
+      if (updRecord.recurring === true && !updRecord.recurring_group_id) {
+        updRecord.recurring_group_id = uuidv4();
+      }
       await db.put(storeName as unknown as never, updated as never);
       await enqueueSync(storeName, "update", updated as Record<string, unknown>);
       await loadData();

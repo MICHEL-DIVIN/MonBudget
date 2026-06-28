@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { clearAllData } from "@/lib/offline/db";
+import { removePin } from "@/lib/security/pin";
 import { sanitizeInput, sanitizeErrorMessage } from "@/lib/auth/validation";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -70,16 +71,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const performSignOut = useCallback(async () => {
+    const userId = user?.id;
     await supabase.auth.signOut();
     await clearAllData();
     await clearSwCache();
+    removePin();
+    if (userId) {
+      localStorage.removeItem(`monbudget-onboarded-${userId}`);
+    }
     localStorage.removeItem("monbudget-onboarded");
     localStorage.removeItem("monbudget-last-user-id");
     localStorage.removeItem("monbudget-notif-prefs");
     localStorage.removeItem("monbudget-login-attempts");
     setUser(null);
     setSession(null);
-  }, []);
+  }, [user]);
 
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);

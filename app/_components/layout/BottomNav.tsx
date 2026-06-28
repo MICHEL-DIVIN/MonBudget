@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n/provider";
 
 const tabs = [
-  { href: "/dashboard", icon: "home", label: "Accueil" },
-  { href: "/revenus", icon: "account_balance_wallet", label: "Revenus" },
-  { href: "/depenses", icon: "receipt_long", label: "Dépenses" },
-  { href: "/objectifs", icon: "savings", label: "Épargne" },
-  { href: "/profil", icon: "settings", label: "Réglages" },
+  { href: "/dashboard", icon: "home", labelKey: "home" as const },
+  { href: "/revenus", icon: "account_balance_wallet", labelKey: "income" as const },
+  { href: "/depenses", icon: "receipt_long", labelKey: "expenses" as const },
+  { href: "/synthese", icon: "assessment", labelKey: "summary" as const },
+  { href: "/objectifs", icon: "savings", labelKey: "savings" as const },
+  { href: "/profil", icon: "settings", labelKey: "settings" as const },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -21,15 +24,15 @@ export default function BottomNav() {
         {tabs.map((tab) => {
           const active = isActive(tab.href);
           return (
-            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-center gap-0.5 w-14">
+            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-center gap-0.5 w-12 min-w-0 flex-1">
               <span
-                className={`material-symbols-outlined text-[22px] transition-colors ${active ? "text-primary" : "text-on-surface-variant"}`}
+                className={`material-symbols-outlined text-[20px] transition-colors ${active ? "text-primary" : "text-on-surface-variant"}`}
                 style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {tab.icon}
               </span>
-              <span className={`text-[9px] leading-none ${active ? "text-primary font-medium" : "text-on-surface-variant"}`}>
-                {tab.label}
+              <span className={`text-[8px] leading-none truncate max-w-full ${active ? "text-primary font-medium" : "text-on-surface-variant"}`}>
+                {t.nav[tab.labelKey]}
               </span>
             </Link>
           );

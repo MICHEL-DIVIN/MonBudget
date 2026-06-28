@@ -17,9 +17,14 @@ import { useCurrency, type CurrencyCode } from "@/lib/currency/provider";
 import { useTheme } from "@/lib/theme/provider";
 import { supabase } from "@/lib/supabase/client";
 import { generateBudgetPdf } from "@/lib/utils/exportPdf";
+import { generateFiscalPdf } from "@/lib/utils/fiscalExport";
 import { useUserId } from "@/lib/auth/provider";
 import { useAuth } from "@/lib/auth/provider";
 import { validatePassword } from "@/lib/auth/validation";
+import { getNotificationPrefs, saveNotificationPrefs } from "@/lib/notifications/prefs";
+import { useI18n } from "@/lib/i18n/provider";
+import PinSetup from "@/app/_components/security/PinSetup";
+import { isPinEnabled } from "@/lib/security/pin";
 import type { Profile, Objectif, Revenu, Depense } from "@/lib/supabase/types";
 
 const CURRENCY_OPTIONS = [
@@ -32,18 +37,20 @@ const CURRENCY_OPTIONS = [
   { value: "CHF", label: "Franc Suisse (CHF)" },
 ];
 
-type SheetPanel = null | "compte" | "notifications" | "securite" | "export" | "aide" | "guide" | "faq" | "contact" | "install";
+type SheetPanel = null | "compte" | "notifications" | "securite" | "export" | "aide" | "guide" | "faq" | "contact" | "install" | "pin";
 
 export default function ProfilPage() {
   const userId = useUserId();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
-  const { currency: currentCurrency, setCurrency: setGlobalCurrency } = useCurrency();
+  const { currency: currentCurrency, setCurrency: setGlobalCurrency, formatAmount } = useCurrency();
   const { theme: currentTheme, setTheme: setThemeFromCtx } = useTheme();
+  const { t, setLocale: setI18nLocale } = useI18n();
   const { data: profiles, updateItem: updateProfile } = useOfflineData<Profile>("profiles");
   const { data: objectifs } = useOfflineData<Objectif>("objectifs");
   const { data: allRevenus, addItem: addRevenu } = useOfflineData<Revenu>("revenus");
   const { data: allDepenses, addItem: addDepense } = useOfflineData<Depense>("depenses");
+  const { data: envelopes } = useOfflineData<import("@/lib/supabase/types").Envelope>("envelopes");
 
   const profile = profiles.length > 0 ? profiles[0] : null;
   const fullName = profile?.full_name ?? "";
@@ -58,28 +65,23 @@ export default function ProfilPage() {
   const [weeklyReport, setWeeklyReportState] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("monbudget-notif-prefs");
-      if (saved) {
-        const p = JSON.parse(saved);
-        setNotificationsState(p.notifications ?? true);
-        setBudgetAlertsState(p.budgetAlerts ?? true);
-        setWeeklyReportState(p.weeklyReport ?? false);
-      }
-    } catch { /* ignore */ }
+    const prefs = getNotificationPrefs();
+    setNotificationsState(prefs.notifications);
+    setBudgetAlertsState(prefs.budgetAlerts);
+    setWeeklyReportState(prefs.weeklyReport);
   }, []);
 
   function setNotifications(v: boolean) {
     setNotificationsState(v);
-    localStorage.setItem("monbudget-notif-prefs", JSON.stringify({ notifications: v, budgetAlerts, weeklyReport }));
+    saveNotificationPrefs({ notifications: v, budgetAlerts, weeklyReport });
   }
   function setBudgetAlerts(v: boolean) {
     setBudgetAlertsState(v);
-    localStorage.setItem("monbudget-notif-prefs", JSON.stringify({ notifications, budgetAlerts: v, weeklyReport }));
+    saveNotificationPrefs({ notifications, budgetAlerts: v, weeklyReport });
   }
   function setWeeklyReport(v: boolean) {
     setWeeklyReportState(v);
-    localStorage.setItem("monbudget-notif-prefs", JSON.stringify({ notifications, budgetAlerts, weeklyReport: v }));
+    saveNotificationPrefs({ notifications, budgetAlerts, weeklyReport: v });
   }
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -179,7 +181,9 @@ export default function ProfilPage() {
     if (profile) {
       setFirstName(nameParts[0] || "");
       setLastName(nameParts.slice(1).join(" ") || "");
-      setLanguage(profile.locale?.startsWith("en") ? "en" : "fr");
+      const loc = profile.locale?.startsWith("en") ? "en" : "fr";
+      setLanguage(loc);
+      setI18nLocale(loc);
     }
     if (user?.email && !email) {
       setEmail(user.email);
@@ -207,6 +211,7 @@ export default function ProfilPage() {
     if (profile) {
       await updateProfile(profile.id, { ...updates, updated_at: now });
     }
+    setI18nLocale(language as "fr" | "en");
 
     setSaving(false);
     setSaved(true);
@@ -238,28 +243,34 @@ export default function ProfilPage() {
       toast("Aucune donnée à exporter", "info");
       return;
     }
-    const revenus = allRevenus;
-    const depenses = allDepenses;
-    const { formatAmount } = { formatAmount: (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n) };
     generateBudgetPdf({
       title: "Mon Budget Familial — Export",
       subtitle: `Exporté le ${new Date().toLocaleDateString("fr-FR")} par ${displayName}`,
       sections: [
         {
           title: "Revenus",
-          rows: (revenus ?? []).map((r: { label: string; amount: number; category: string; date: string }) => ({
+          rows: allRevenus.map((r) => ({
             label: r.label, amount: formatAmount(r.amount), category: r.category, date: r.date,
           })),
         },
         {
           title: "Dépenses",
-          rows: (depenses ?? []).map((d: { label: string; amount: number; category: string; date: string }) => ({
+          rows: allDepenses.map((d) => ({
             label: d.label, amount: formatAmount(d.amount), category: d.category, date: d.date,
           })),
         },
       ],
       footer: "Mon Budget Familial — Document confidentiel",
     });
+  }
+
+  function handleExportFiscal() {
+    if (allRevenus.length === 0 && allDepenses.length === 0) {
+      toast("Aucune donnée pour l'année en cours", "info");
+      return;
+    }
+    generateFiscalPdf(allRevenus, allDepenses, envelopes, new Date().getFullYear(), formatAmount, displayName);
+    toast("Rapport fiscal généré", "success");
   }
 
   async function handleImportCSV(rows: Array<{ label: string; amount: number; category: string; date: string; type: "revenu" | "depense" }>) {
@@ -283,7 +294,7 @@ export default function ProfilPage() {
   const settingsItems: { key: SheetPanel; icon: string; bg: string; label: string; desc: string }[] = [
     { key: "compte", icon: "person", bg: "bg-primary/15", label: "Compte", desc: "Infos personnelles, photo..." },
     { key: "notifications", icon: "notifications", bg: "bg-secondary/15", label: "Notifications", desc: "Alertes budget, rappels..." },
-    { key: "securite", icon: "shield", bg: "bg-error/15", label: "Sécurité", desc: "FaceID, Code PIN, MDP..." },
+    { key: "securite", icon: "shield", bg: "bg-error/15", label: t.settings.security, desc: `${t.settings.pin}, MDP...` },
     { key: "export", icon: "upload_file", bg: "bg-tertiary/15", label: "Export", desc: "PDF, CSV, Rappels fiscaux" },
     { key: "install", icon: "download", bg: "bg-success/15", label: "Installer l'app", desc: "Instructions Android & iPhone" },
     { key: "aide", icon: "help", bg: "bg-surface-container-high", label: "Aide", desc: "Centre d'aide, support..." },
@@ -342,7 +353,7 @@ export default function ProfilPage() {
             <h3 className="font-semibold text-on-surface">Préférences</h3>
           </div>
           <div className="space-y-4">
-            <Select label="Langue" value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: "fr", label: "Français (FR)" }, { value: "en", label: "English (EN)" }]} />
+            <Select label={t.settings.language} value={language} onChange={(e) => { setLanguage(e.target.value); setI18nLocale(e.target.value as "fr" | "en"); }} options={[{ value: "fr", label: "Français (FR)" }, { value: "en", label: "English (EN)" }]} />
             <Select label="Devise" value={currentCurrency} onChange={(e) => setGlobalCurrency(e.target.value as CurrencyCode)} options={CURRENCY_OPTIONS} />
             <Toggle checked={notifications} onChange={() => setNotifications(!notifications)} label="Notifications push" />
             <div className="pt-2">
@@ -411,19 +422,19 @@ export default function ProfilPage() {
           <h2 className="text-xl font-bold text-on-surface" suppressHydrationWarning>{displayName}</h2>
           <p className="text-sm text-on-surface-variant mt-1" suppressHydrationWarning>{displayEmail}</p>
           <div className="mt-3">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-semibold bg-primary/15 text-primary">Premium Family Plan</span>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-semibold bg-primary/15 text-primary">Mon Budget Familial</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Card padding="sm">
             <Icon name="group" size={18} className="text-primary mb-1" />
-            <p className="text-xs text-on-surface-variant">Membres</p>
+            <p className="text-xs text-on-surface-variant">{t.settings.member}</p>
             <p className="text-xl font-bold text-on-surface">1</p>
           </Card>
           <Card padding="sm">
             <Icon name="flag" size={18} className="text-primary mb-1" />
-            <p className="text-xs text-on-surface-variant">Objectifs</p>
+            <p className="text-xs text-on-surface-variant">{t.settings.goals}</p>
             <p className="text-xl font-bold text-on-surface">{objectifs.length}</p>
           </Card>
         </div>
@@ -491,7 +502,7 @@ export default function ProfilPage() {
           <Input label="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
           <Input label="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} />
           <Input label="Email" value={displayEmail} onChange={() => {}} type="email" disabled />
-          <Select label="Langue" value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: "fr", label: "Français (FR)" }, { value: "en", label: "English (EN)" }]} />
+          <Select label={t.settings.language} value={language} onChange={(e) => { setLanguage(e.target.value); setI18nLocale(e.target.value as "fr" | "en"); }} options={[{ value: "fr", label: "Français (FR)" }, { value: "en", label: "English (EN)" }]} />
           <Select label="Devise" value={currentCurrency} onChange={(e) => setGlobalCurrency(e.target.value as CurrencyCode)} options={CURRENCY_OPTIONS} />
           <div className="flex gap-3 pt-2">
             <Button variant="outline" size="md" onClick={() => setActiveSheet(null)} className="flex-1">Annuler</Button>
@@ -544,10 +555,13 @@ export default function ProfilPage() {
           <div className="border-t border-outline-variant/30 my-2" />
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-on-surface">Code PIN</p>
-              <p className="text-xs text-on-surface-variant">Verrou rapide à 4 chiffres</p>
+              <p className="text-sm font-medium text-on-surface">{t.settings.pin}</p>
+              <p className="text-xs text-on-surface-variant">{t.settings.pinDesc}{isPinEnabled() ? " — Actif" : ""}</p>
             </div>
-            <Icon name="chevron_right" size={20} className="text-outline" />
+            <button type="button" onClick={() => setActiveSheet("pin")} className="flex items-center gap-1 text-primary text-sm font-medium">
+              {isPinEnabled() ? t.settings.pinRemove : t.settings.pinSetup}
+              <Icon name="chevron_right" size={20} className="text-outline" />
+            </button>
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="outline" size="md" onClick={() => setActiveSheet(null)} className="flex-1">Annuler</Button>
@@ -585,7 +599,7 @@ export default function ProfilPage() {
             <Icon name="download" size={20} className="text-primary" />
           </button>
 
-          <button className="w-full flex items-center gap-4 p-4 bg-surface-container rounded-xl hover:bg-surface-container-high active:scale-[0.98] transition-all">
+          <button onClick={() => { handleExportFiscal(); setActiveSheet(null); }} className="w-full flex items-center gap-4 p-4 bg-surface-container rounded-xl hover:bg-surface-container-high active:scale-[0.98] transition-all">
             <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
               <Icon name="receipt_long" size={24} className="text-primary" />
             </div>
@@ -808,6 +822,11 @@ export default function ProfilPage() {
             </div>
           </div>
         </div>
+      </BottomSheet>
+
+      {/* Code PIN */}
+      <BottomSheet isOpen={activeSheet === "pin"} onClose={() => setActiveSheet("securite")} title={t.settings.pin}>
+        <PinSetup onClose={() => setActiveSheet("securite")} />
       </BottomSheet>
     </div>
   );

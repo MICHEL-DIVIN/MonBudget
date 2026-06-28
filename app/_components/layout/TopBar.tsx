@@ -1,14 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useOffline } from "@/lib/offline/provider";
 import { useAuth } from "@/lib/auth/provider";
 import { supabase } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/provider";
 import NotificationPanel from "./NotificationPanel";
 
 export default function TopBar() {
   const { isOnline } = useOffline();
   const { user } = useAuth();
+  const { t } = useI18n();
+  const pathname = usePathname();
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -50,16 +55,23 @@ export default function TopBar() {
   return (
     <>
       {/* Desktop */}
-      <header className="hidden md:flex sticky top-0 z-30 items-center justify-between h-14 px-8 bg-background/90 backdrop-blur-xl border-b border-outline-variant/30">
-        <span className="text-primary font-bold">MonBudget</span>
+      <header className="hidden md:flex sticky top-0 z-30 items-center justify-between h-14 px-8 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20">
+        <span className="font-display text-primary text-lg tracking-tight">MonBudget</span>
         <div className="flex items-center gap-2">
+          <Link
+            href="/synthese"
+            className={`hidden md:flex w-9 h-9 rounded-xl hover:bg-surface-container-high items-center justify-center transition-colors ${pathname.startsWith("/synthese") ? "text-primary" : "text-on-surface-variant"}`}
+            title={t.nav.summary}
+          >
+            <span className="material-symbols-outlined text-xl">assessment</span>
+          </Link>
           <Bell className="w-9 h-9" />
         </div>
       </header>
 
       {/* Mobile */}
-      <header className="flex md:hidden sticky top-0 z-30 items-center justify-between h-14 px-5 bg-background/90 backdrop-blur-xl">
-        <span className="text-primary font-bold text-[15px]">MonBudget</span>
+      <header className="flex md:hidden sticky top-0 z-30 items-center justify-between h-14 px-5 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20">
+        <span className="font-display text-primary text-[15px] tracking-tight">MonBudget</span>
         <div className="flex items-center gap-2">
           <Bell className="w-10 h-10" />
         </div>

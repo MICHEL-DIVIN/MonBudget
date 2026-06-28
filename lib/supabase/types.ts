@@ -29,6 +29,7 @@ export interface Revenu {
   type: string;
   date: string;
   recurring: boolean;
+  recurring_group_id?: string | null;
   created_at: string;
   updated_at: string;
   synced_at: string | null;
@@ -43,6 +44,7 @@ export interface Depense {
   envelope_id: string | null;
   date: string;
   recurring: boolean;
+  recurring_group_id?: string | null;
   created_at: string;
   updated_at: string;
   synced_at: string | null;

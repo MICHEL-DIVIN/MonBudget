@@ -5,31 +5,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/provider";
 import { supabase } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/provider";
 
-interface NavItem {
-  href: string;
-  icon: string;
-  label: string;
-}
-
-const navItems: NavItem[] = [
-  { href: "/dashboard", icon: "home", label: "Accueil" },
-  { href: "/revenus", icon: "account_balance_wallet", label: "Revenus" },
-  { href: "/depenses", icon: "receipt_long", label: "Dépenses" },
-  { href: "/objectifs", icon: "savings", label: "Épargne" },
-  { href: "/synthese", icon: "assessment", label: "Synthèse" },
+const navItems = [
+  { href: "/dashboard", icon: "home", labelKey: "home" as const },
+  { href: "/revenus", icon: "account_balance_wallet", labelKey: "income" as const },
+  { href: "/depenses", icon: "receipt_long", labelKey: "expenses" as const },
+  { href: "/objectifs", icon: "savings", labelKey: "savings" as const },
+  { href: "/synthese", icon: "assessment", labelKey: "summary" as const },
 ];
 
-const settingsItem: NavItem = {
-  href: "/profil",
-  icon: "settings",
-  label: "Réglages",
-};
+const settingsItem = { href: "/profil", icon: "settings", labelKey: "settings" as const };
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { t } = useI18n();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!user) return;
@@ -43,9 +35,9 @@ export default function Sidebar() {
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-[264px] flex-col bg-surface-container-lowest z-40 p-6 border-r border-outline-variant/20">
       {/* App logo */}
       <div className="mb-8 pb-6 border-b border-outline-variant/20">
-        <h1 className="text-primary font-bold text-lg">Mon Budget</h1>
-        <h2 className="text-primary font-bold text-lg">Familial</h2>
-        <p className="text-on-surface-variant text-xs mt-1">Family Finance</p>
+        <p className="section-label mb-2">Registre familial</p>
+        <h1 className="font-display text-[22px] text-on-surface leading-tight tracking-tight">Mon Budget</h1>
+        <p className="font-display text-[22px] text-primary leading-tight tracking-tight">Familial</p>
       </div>
 
       {/* Navigation */}
@@ -61,7 +53,7 @@ export default function Sidebar() {
             }`}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
-            <span>{item.label}</span>
+            <span>{t.nav[item.labelKey]}</span>
           </Link>
         ))}
       </nav>
@@ -91,7 +83,7 @@ export default function Sidebar() {
         }`}
       >
         <span className="material-symbols-outlined">{settingsItem.icon}</span>
-        <span>{settingsItem.label}</span>
+        <span>{t.nav[settingsItem.labelKey]}</span>
       </Link>
     </aside>
   );
