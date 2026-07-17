@@ -104,12 +104,18 @@ export default function ObjectifsPage() {
     if (!obj) return;
 
     const maxAdd = Number(obj.target_amount) - Number(obj.current_amount);
-    const actualAdd = Math.min(amount, maxAdd > 0 ? maxAdd : amount);
+    if (maxAdd <= 0) {
+      toast("Cet objectif est déjà atteint !", "info");
+      setShowFundsSheet(false);
+      setFundsTargetId(null);
+      return;
+    }
+    const actualAdd = Math.min(amount, maxAdd);
     const newAmount = Number(obj.current_amount) + actualAdd;
     await updateItem(fundsTargetId, { current_amount: newAmount });
 
     if (actualAdd < amount) {
-      toast(`Seulement ${actualAdd.toFixed(2)} ajoutés pour atteindre l'objectif`, "info");
+      toast(`Seulement ${formatAmount(actualAdd)} ajoutés pour atteindre l'objectif`, "info");
     }
 
     if (newAmount >= Number(obj.target_amount) && Number(obj.current_amount) < Number(obj.target_amount)) {
@@ -137,7 +143,8 @@ export default function ObjectifsPage() {
   }
 
   function formatDeadline(date: string) {
-    return new Date(date).toLocaleDateString("fr-FR", {
+    const [y, m, d] = date.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",

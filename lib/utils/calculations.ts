@@ -186,6 +186,9 @@ export interface BudgetHealth {
 }
 
 export function computeBudgetHealth(snapshot: MonthlySnapshot): BudgetHealth {
+  if (snapshot.totalRevenus === 0 && snapshot.totalDepenses === 0) {
+    return { score: 0, grade: "F", insights: [], warnings: [] };
+  }
   let score = 50;
   const insights: string[] = [];
   const warnings: string[] = [];

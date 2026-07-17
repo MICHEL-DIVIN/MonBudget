@@ -45,7 +45,7 @@ export default function TopBar() {
     >
       <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
       {unreadCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+        <span className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] min-w-[18px] bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}

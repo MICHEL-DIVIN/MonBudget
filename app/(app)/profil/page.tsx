@@ -229,7 +229,7 @@ export default function ProfilPage() {
       ...allRevenus.map((r) => `Revenu,"${String(r.label).replace(/"/g, '""')}",${r.amount},"${r.category}",${r.date}`),
       ...allDepenses.map((d) => `Dépense,"${String(d.label).replace(/"/g, '""')}",${d.amount},"${d.category}",${d.date}`),
     ];
-    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

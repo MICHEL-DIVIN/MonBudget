@@ -213,7 +213,18 @@ export default function LoginPage() {
       </div>
 
       {/* Google */}
-      <button className="auth-btn-google" type="button" onClick={() => setError("Connexion Google temporairement indisponible.")}>
+      <button
+        className="auth-btn-google"
+        type="button"
+        disabled={submitting}
+        onClick={async () => {
+          setError("");
+          setSubmitting(true);
+          const result = await signInWithGoogle();
+          if (result.error) setError(result.error);
+          setSubmitting(false);
+        }}
+      >
         <GoogleIcon />
         Continuer avec Google
       </button>
