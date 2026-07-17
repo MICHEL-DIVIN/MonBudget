@@ -4,12 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/provider";
 
-const ONBOARDED_KEY = "monbudget-onboarded";
-
-function isOnboarded(userId: string): boolean {
-  return localStorage.getItem(`${ONBOARDED_KEY}-${userId}`) === "true";
-}
-
 export default function RootPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -18,10 +12,6 @@ export default function RootPage() {
     if (loading) return;
     if (!user) {
       router.replace("/login");
-      return;
-    }
-    if (!isOnboarded(user.id)) {
-      router.replace("/onboarding");
       return;
     }
     router.replace("/dashboard");

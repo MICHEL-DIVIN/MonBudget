@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
@@ -21,17 +20,6 @@ const incomeCategories = [
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isOnboarding = pathname === "/onboarding";
-
-  if (isOnboarding) {
-    return (
-      <div className="min-h-[100dvh] bg-background">
-        <main className="px-5 py-4">{children}</main>
-      </div>
-    );
-  }
-
   const userId = useUserId();
   const [showForm, setShowForm] = useState<"expense" | "income" | null>(null);
   const { data: allDepenses, addItem: addDepense } = useOfflineData<Depense>("depenses");
