@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/provider";
 import { useOfflineData } from "@/lib/offline/hooks";
@@ -9,17 +10,56 @@ import { filterByMonth, totalDepenses, totalRevenus } from "@/lib/utils/calculat
 import { areBudgetAlertsEnabled, areNotificationsEnabled } from "@/lib/notifications/prefs";
 import type { Revenu, Depense, Envelope, Objectif, AppNotification } from "@/lib/supabase/types";
 
-interface NotifItem {
+interface LocalAlert {
   id: string;
   icon: string;
-  color: string;
-  bg: string;
+  iconColor: string;
+  iconBg: string;
   title: string;
   message: string;
-  type: "warning" | "success" | "info" | "promo";
-  read: boolean;
-  fromServer: boolean;
-  time?: string;
+  link: string;
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "À l'instant";
+  if (min < 60) return `Il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `Il y a ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Hier";
+  if (d < 7) return `Il y a ${d} jours`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function getNotifMeta(type: string, title: string) {
+  if (type === "success") {
+    if (title.toLowerCase().includes("objectif")) return { icon: "emoji_events", color: "#22c55e", bg: "rgba(34,197,94,0.15)" };
+    return { icon: "savings", color: "#22c55e", bg: "rgba(34,197,94,0.15)" };
+  }
+  if (type === "promo") return { icon: "campaign", color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" };
+  if (type === "warning") {
+    if (title.toLowerCase().includes("enveloppe")) return { icon: "account_balance_wallet", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" };
+    if (title.toLowerCase().includes("échéance")) return { icon: "event_busy", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" };
+    if (title.toLowerCase().includes("hausse")) return { icon: "trending_up", color: "#ef4444", bg: "rgba(239,68,68,0.15)" };
+    if (title.toLowerCase().includes("excessif") || title.toLowerCase().includes("dépassé")) return { icon: "trending_down", color: "#ef4444", bg: "rgba(239,68,68,0.15)" };
+    return { icon: "warning", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" };
+  }
+  // info
+  if (title.toLowerCase().includes("hebdomadaire")) return { icon: "analytics", color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" };
+  if (title.toLowerCase().includes("objectif")) return { icon: "flag", color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" };
+  if (title.toLowerCase().includes("revenu")) return { icon: "currency_exchange", color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" };
+  return { icon: "info", color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" };
+}
+
+function getActionLink(title: string, type: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("enveloppe") || t.includes("dépassé") || t.includes("hausse") || t.includes("budget") || t.includes("mi-mois") || t.includes("mi-parcours")) return "/depenses";
+  if (t.includes("revenu") && type === "info") return "/revenus";
+  if (t.includes("objectif") || t.includes("échéance")) return "/objectifs";
+  if (t.includes("hebdomadaire") || t.includes("excellent")) return "/synthese";
+  return "/dashboard";
 }
 
 export default function NotificationPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -31,6 +71,7 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
   const { data: objectifs } = useOfflineData<Objectif>("objectifs");
 
   const [serverNotifs, setServerNotifs] = useState<AppNotification[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadServerNotifs = useCallback(async () => {
     if (!user) return;
@@ -39,7 +80,7 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
       .select("*")
       .or(`user_id.eq.${user.id},user_id.is.null`)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(40);
     if (data) setServerNotifs(data);
   }, [user]);
 
@@ -49,24 +90,32 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
 
   async function markRead(id: string) {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
-    setServerNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setServerNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }
 
   async function markAllRead() {
     if (!user) return;
     const unread = serverNotifs.filter((n) => !n.read && n.user_id === user.id);
-    for (const n of unread) {
-      await supabase.from("notifications").update({ read: true }).eq("id", n.id);
-    }
+    await Promise.all(unread.map((n) => supabase.from("notifications").update({ read: true }).eq("id", n.id)));
     setServerNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
+
+  async function deleteNotif(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setDeleting(id);
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (!error) {
+      setServerNotifs((prev) => prev.filter((n) => n.id !== id));
+    }
+    setDeleting(null);
   }
 
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
 
-  const localAlerts = useMemo(() => {
-    const items: NotifItem[] = [];
+  const localAlerts = useMemo((): LocalAlert[] => {
+    const items: LocalAlert[] = [];
     if (!areNotificationsEnabled()) return items;
 
     const monthRev = filterByMonth(revenus, month, year) as Revenu[];
@@ -76,123 +125,253 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
     const balance = totRev - totDep;
     const budgetAlerts = areBudgetAlertsEnabled();
 
-    if (budgetAlerts && balance < 0) {
-      items.push({ id: "neg", icon: "warning", color: "text-error", bg: "bg-error/15", title: "Solde négatif", message: `Dépenses dépassent les revenus de ${formatAmount(Math.abs(balance))}`, type: "warning", read: false, fromServer: false });
+    if (budgetAlerts && totRev > 0 && totDep > totRev) {
+      const pct = Math.round((totDep / totRev) * 100);
+      items.push({
+        id: "neg-bal",
+        icon: "trending_down",
+        iconColor: "#ef4444",
+        iconBg: "rgba(239,68,68,0.15)",
+        title: "Solde négatif",
+        message: `${pct}% des revenus dépensés — dépassement de ${formatAmount(Math.abs(balance))}`,
+        link: "/depenses",
+      });
+    } else if (budgetAlerts && totRev > 0 && totDep > totRev * 0.8) {
+      const pct = Math.round((totDep / totRev) * 100);
+      items.push({
+        id: "high-spend",
+        icon: "account_balance",
+        iconColor: "#f59e0b",
+        iconBg: "rgba(245,158,11,0.15)",
+        title: "Budget serré",
+        message: `${pct}% utilisés — il reste ${formatAmount(totRev - totDep)}`,
+        link: "/depenses",
+      });
     }
 
     if (budgetAlerts) {
-    for (const env of envelopes) {
-      const spent = monthDep.filter((d) => d.envelope_id === env.id).reduce((s, d) => s + Number(d.amount), 0);
-      if (env.budgeted > 0 && spent > env.budgeted) {
-        items.push({ id: `env-${env.id}`, icon: "account_balance_wallet", color: "text-error", bg: "bg-error/15", title: `${env.name} dépassée`, message: `${formatAmount(spent)} / ${formatAmount(env.budgeted)} (+${formatAmount(spent - env.budgeted)})`, type: "warning", read: false, fromServer: false });
-      } else if (env.budgeted > 0 && spent > env.budgeted * 0.8) {
-        items.push({ id: `envw-${env.id}`, icon: "account_balance_wallet", color: "text-warning", bg: "bg-warning/15", title: `${env.name} bientôt épuisée`, message: `${Math.round((spent / env.budgeted) * 100)}% utilisés`, type: "warning", read: false, fromServer: false });
+      for (const env of envelopes) {
+        const spent = monthDep
+          .filter((d) => d.envelope_id === env.id)
+          .reduce((s, d) => s + Number(d.amount), 0);
+        if (env.budgeted > 0 && spent > env.budgeted) {
+          items.push({
+            id: `env-over-${env.id}`,
+            icon: "account_balance_wallet",
+            iconColor: "#ef4444",
+            iconBg: "rgba(239,68,68,0.15)",
+            title: `"${env.name}" dépassée`,
+            message: `${formatAmount(spent)} / ${formatAmount(env.budgeted)} (+${formatAmount(spent - env.budgeted)})`,
+            link: "/depenses",
+          });
+        } else if (env.budgeted > 0 && spent > env.budgeted * 0.8) {
+          const pct = Math.round((spent / env.budgeted) * 100);
+          items.push({
+            id: `env-warn-${env.id}`,
+            icon: "account_balance_wallet",
+            iconColor: "#f59e0b",
+            iconBg: "rgba(245,158,11,0.15)",
+            title: `"${env.name}" bientôt épuisée`,
+            message: `${pct}% utilisés — reste ${formatAmount(env.budgeted - spent)}`,
+            link: "/depenses",
+          });
+        }
       }
-    }
     }
 
     for (const obj of objectifs) {
-      const pct = Number(obj.target_amount) > 0 ? (Number(obj.current_amount) / Number(obj.target_amount)) * 100 : 0;
+      const pct = Number(obj.target_amount) > 0
+        ? (Number(obj.current_amount) / Number(obj.target_amount)) * 100
+        : 0;
       if (pct >= 100) {
-        items.push({ id: `obj-${obj.id}`, icon: "emoji_events", color: "text-success", bg: "bg-success/15", title: "Objectif atteint !", message: `"${obj.label}"`, type: "success", read: false, fromServer: false });
+        items.push({
+          id: `obj-done-${obj.id}`,
+          icon: "emoji_events",
+          iconColor: "#22c55e",
+          iconBg: "rgba(34,197,94,0.15)",
+          title: "Objectif atteint !",
+          message: `"${obj.label}" — ${formatAmount(Number(obj.target_amount))}`,
+          link: "/objectifs",
+        });
       }
     }
 
     if (totRev > 0 && balance > 0 && balance / totRev >= 0.2) {
-      items.push({ id: "good", icon: "thumb_up", color: "text-success", bg: "bg-success/15", title: "Bonne gestion", message: `${Math.round((balance / totRev) * 100)}% d'épargne ce mois`, type: "success", read: false, fromServer: false });
+      const pct = Math.round((balance / totRev) * 100);
+      items.push({
+        id: "good-saver",
+        icon: "savings",
+        iconColor: "#22c55e",
+        iconBg: "rgba(34,197,94,0.15)",
+        title: "Bonne gestion",
+        message: `${pct}% d'épargne ce mois — ${formatAmount(balance)}`,
+        link: "/synthese",
+      });
     }
 
     return items;
   }, [revenus, depenses, envelopes, objectifs, month, year, formatAmount]);
 
-  const serverItems: NotifItem[] = serverNotifs.map((n) => ({
-    id: n.id,
-    icon: n.type === "warning" ? "warning" : n.type === "success" ? "check_circle" : n.type === "promo" ? "campaign" : "info",
-    color: n.type === "warning" ? "text-warning" : n.type === "success" ? "text-success" : n.type === "promo" ? "text-primary" : "text-primary",
-    bg: n.type === "warning" ? "bg-warning/15" : n.type === "success" ? "bg-success/15" : n.type === "promo" ? "bg-primary/15" : "bg-primary/15",
-    title: n.title,
-    message: n.body,
-    type: n.type,
-    read: n.read,
-    fromServer: true,
-    time: new Date(n.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
-  }));
-
-  const allNotifs = [...serverItems, ...localAlerts];
-  const unreadCount = allNotifs.filter((n) => !n.read).length;
+  const unreadServer = serverNotifs.filter((n) => !n.read).length;
+  const totalUnread = unreadServer + localAlerts.length;
 
   if (!open) return null;
 
-  const renderNotifs = () => (
-    <>
-      {allNotifs.length === 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px" }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 24, color: "#22c55e" }}>check_circle</span>
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 500, color: "#f0f0f4" }}>Tout va bien !</p>
-          <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 4 }}>Aucune notification.</p>
-        </div>
-      ) : (
-        <div style={{ paddingBottom: 8 }}>
-          {serverItems.length > 0 && (
-            <p style={{ padding: "12px 16px 4px", fontSize: 10, fontWeight: 600, color: "#6b6b80", textTransform: "uppercase", letterSpacing: 1 }}>Messages</p>
-          )}
-          {serverItems.map((n) => (
-            <div
-              key={n.id}
-              onClick={() => !n.read && markRead(n.id)}
-              style={{ display: "flex", gap: 10, padding: "12px 16px", opacity: n.read ? 0.5 : 1, cursor: n.read ? "default" : "pointer" }}
-            >
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: n.bg.includes("error") ? "rgba(239,68,68,0.15)" : n.bg.includes("success") ? "rgba(34,197,94,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: n.color.includes("error") ? "#ef4444" : n.color.includes("success") ? "#22c55e" : "#8b5cf6" }}>{n.icon}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "#f0f0f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
-                  {!n.read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#8b5cf6", flexShrink: 0 }} />}
-                </div>
-                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 2, lineHeight: 1.4 }}>{n.message}</p>
-                {n.time && <p style={{ fontSize: 10, color: "#4a4a5c", marginTop: 4 }}>{n.time}</p>}
-              </div>
-            </div>
-          ))}
-          {localAlerts.length > 0 && (
-            <p style={{ padding: "12px 16px 4px", fontSize: 10, fontWeight: 600, color: "#6b6b80", textTransform: "uppercase", letterSpacing: 1 }}>Alertes budget</p>
-          )}
-          {localAlerts.map((n) => (
-            <div key={n.id} style={{ display: "flex", gap: 10, padding: "12px 16px" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: n.bg.includes("error") ? "rgba(239,68,68,0.15)" : n.bg.includes("success") ? "rgba(34,197,94,0.15)" : n.bg.includes("warning") ? "rgba(245,158,11,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: n.color.includes("error") ? "#ef4444" : n.color.includes("success") ? "#22c55e" : n.color.includes("warning") ? "#f59e0b" : "#8b5cf6" }}>{n.icon}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 500, color: "#f0f0f4" }}>{n.title}</p>
-                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 2, lineHeight: 1.4 }}>{n.message}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-
-  const header = (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(42,42,54,0.3)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button onClick={onClose} className="md:hidden" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#f0f0f4" }}>arrow_back</span>
-        </button>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f4" }}>Notifications</h2>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {unreadCount > 0 && (
-          <button onClick={markAllRead} style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>
-            Tout lire
+  const content = (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
+          >
+            <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>arrow_back</span>
           </button>
+          <h2 className="text-[15px] font-semibold text-on-surface">Notifications</h2>
+          {totalUnread > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary min-w-[18px] text-center">
+              {totalUnread}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {unreadServer > 0 && (
+            <button
+              onClick={markAllRead}
+              className="text-[12px] text-primary font-medium px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors"
+            >
+              Tout lire
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto">
+        {localAlerts.length === 0 && serverNotifs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-14 h-14 rounded-2xl bg-success/15 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-success" style={{ fontSize: 28, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            </div>
+            <p className="text-[15px] font-semibold text-on-surface">Tout va bien !</p>
+            <p className="text-[13px] text-on-surface-variant mt-1 text-center">Aucune alerte ni notification pour le moment.</p>
+          </div>
+        ) : (
+          <>
+            {/* Alertes en direct */}
+            {localAlerts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Alertes en direct</p>
+                  <span className="w-1.5 h-1.5 rounded-full bg-error animate-pulse" />
+                </div>
+                <div className="space-y-1 px-2 pb-2">
+                  {localAlerts.map((alert) => (
+                    <Link
+                      key={alert.id}
+                      href={alert.link}
+                      onClick={onClose}
+                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group"
+                    >
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ background: alert.iconBg }}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 18, color: alert.iconColor, fontVariationSettings: "'FILL' 1" }}
+                        >
+                          {alert.icon}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-on-surface leading-tight">{alert.title}</p>
+                        <p className="text-[12px] text-on-surface-variant mt-0.5 leading-snug">{alert.message}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-on-surface-variant text-[16px] opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 shrink-0">
+                        chevron_right
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Séparateur */}
+            {localAlerts.length > 0 && serverNotifs.length > 0 && (
+              <div className="mx-4 border-t border-white/[0.06]" />
+            )}
+
+            {/* Messages serveur */}
+            {serverNotifs.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider px-4 pt-4 pb-2">
+                  Messages
+                </p>
+                <div className="space-y-1 px-2 pb-4">
+                  {serverNotifs.map((n) => {
+                    const meta = getNotifMeta(n.type, n.title);
+                    const actionLink = getActionLink(n.title, n.type);
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => !n.read && markRead(n.id)}
+                        className={`flex items-start gap-3 p-3 rounded-xl transition-colors group relative ${!n.read ? "bg-white/[0.04] hover:bg-white/[0.07] cursor-pointer" : "opacity-60 hover:opacity-80 hover:bg-white/[0.03]"}`}
+                      >
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ background: meta.bg }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: 18, color: meta.color, fontVariationSettings: "'FILL' 1" }}
+                          >
+                            {meta.icon}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0 pr-6">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[13px] font-semibold text-on-surface leading-tight truncate">{n.title}</p>
+                            {!n.read && (
+                              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[12px] text-on-surface-variant mt-0.5 leading-snug line-clamp-2">{n.body}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <p className="text-[10px] text-on-surface-variant/60">{relativeTime(n.created_at)}</p>
+                            <Link
+                              href={actionLink}
+                              onClick={(e) => { e.stopPropagation(); onClose(); }}
+                              className="text-[10px] text-primary font-medium hover:underline"
+                            >
+                              Voir →
+                            </Link>
+                          </div>
+                        </div>
+
+                        {/* Bouton supprimer */}
+                        <button
+                          onClick={(e) => deleteNotif(n.id, e)}
+                          disabled={deleting === n.id}
+                          className="absolute top-2.5 right-2.5 w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-error/20 transition-all"
+                          title="Supprimer"
+                        >
+                          {deleting === n.id ? (
+                            <span className="w-3 h-3 border border-on-surface-variant border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 14 }}>close</span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
-        <span style={{ fontSize: 11, color: "#6b6b80", background: "#1e1e28", padding: "2px 8px", borderRadius: 99 }}>
-          {unreadCount}
-        </span>
       </div>
     </div>
   );
@@ -202,47 +381,37 @@ export default function NotificationPanel({ open, onClose }: { open: boolean; on
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)" }}
+        className="fixed inset-0 z-60 bg-black/40 backdrop-blur-sm"
       />
 
-      {/* Desktop: dropdown */}
+      {/* Desktop dropdown */}
       <div
-        className="hidden md:block"
+        className="hidden md:flex flex-col fixed z-[61] rounded-2xl overflow-hidden"
         style={{
-          position: "fixed",
-          top: 56,
+          top: 60,
           right: 24,
           width: 380,
-          maxHeight: "70vh",
-          zIndex: 61,
+          maxHeight: "calc(100vh - 80px)",
           background: "#18181f",
-          borderRadius: 16,
-          border: "1px solid rgba(42,42,54,0.4)",
-          boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
-          overflowY: "auto",
+          border: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
         }}
       >
-        {header}
-        {renderNotifs()}
+        {content}
       </div>
 
-      {/* Mobile: plein écran */}
+      {/* Mobile plein écran */}
       <div
-        className="md:hidden"
+        className="md:hidden flex flex-col fixed z-[61] overflow-hidden"
         style={{
-          position: "fixed",
           top: 56,
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 61,
           background: "#0a0a0f",
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
         }}
       >
-        {header}
-        {renderNotifs()}
+        {content}
       </div>
     </>
   );

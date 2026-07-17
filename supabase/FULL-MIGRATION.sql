@@ -317,9 +317,9 @@ CREATE POLICY "notif_insert_self" ON public.notifications
 -- Admin : notifications promo / broadcast
 CREATE POLICY "notif_insert_admin" ON public.notifications
   FOR INSERT WITH CHECK (public.is_admin());
--- Seuls les admins peuvent supprimer
-CREATE POLICY "notif_delete_admin" ON public.notifications
-  FOR DELETE USING (public.is_admin());
+-- Utilisateur peut supprimer ses propres notifs ; admin peut tout supprimer
+CREATE POLICY "notif_delete" ON public.notifications
+  FOR DELETE USING (user_id = auth.uid() OR public.is_admin());
 
 -- ============================================
 -- ÉTAPE 12c : POLICIES PUSH SUBSCRIPTIONS
