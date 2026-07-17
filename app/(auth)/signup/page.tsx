@@ -112,7 +112,7 @@ export default function SignupPage() {
           Compte créé avec succès
         </h1>
         <p style={{ fontSize: 14, color: "#6b6b80", marginBottom: 24 }}>
-          Vérifiez votre boîte mail et cliquez sur le lien de confirmation avant de vous connecter.
+          Votre compte a été créé. Vous pouvez maintenant vous connecter.
         </p>
         <Link href="/login" style={{ color: "#8b5cf6", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>
           Se connecter
