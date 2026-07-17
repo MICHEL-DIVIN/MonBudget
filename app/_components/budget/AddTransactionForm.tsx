@@ -124,18 +124,25 @@ export default function AddTransactionForm({
       />
 
       {/* Recurring toggle */}
-      <div className="flex items-center justify-between py-2">
-        <div>
-          <p className="text-sm font-medium text-on-surface">Récurrent (mensuel)</p>
-          <p className="text-xs text-on-surface-variant">Se répète chaque mois automatiquement</p>
+      <div
+        className={`rounded-xl p-3 transition-colors ${recurring ? "bg-warning/10 border border-warning/30" : "bg-surface-container"}`}
+        style={{ border: recurring ? undefined : "1px solid transparent" }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-on-surface">Récurrent (mensuel)</p>
+            <p className="text-xs text-on-surface-variant">
+              {recurring ? "⚠️ Copié automatiquement chaque mois" : "Une seule fois"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRecurring(!recurring)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${recurring ? "bg-primary" : "bg-outline-variant"}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${recurring ? "translate-x-5" : "translate-x-0"}`} />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setRecurring(!recurring)}
-          className={`relative w-11 h-6 rounded-full transition-colors ${recurring ? "bg-primary" : "bg-outline-variant"}`}
-        >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${recurring ? "translate-x-5" : "translate-x-0"}`} />
-        </button>
       </div>
 
       <div className="flex items-center gap-3 pt-2">

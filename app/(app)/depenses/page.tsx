@@ -160,6 +160,20 @@ export default function DepensesPage() {
   }
 
   async function handleDeleteDepense(id: string) {
+    const dep = allDepenses.find((d) => d.id === id);
+    if (dep?.recurring && dep?.recurring_group_id) {
+      const series = allDepenses.filter((d) => d.recurring_group_id === dep.recurring_group_id);
+      if (series.length > 1) {
+        const deleteAll = window.confirm(
+          `Cette dépense est récurrente (${series.length} occurrence${series.length > 1 ? "s" : ""} au total).\n\nOK → Supprimer TOUTES les occurrences\nAnnuler → Supprimer uniquement celle-ci`
+        );
+        if (deleteAll) {
+          for (const d of series) await deleteItem(d.id);
+          toast(`${series.length} occurrence(s) supprimée(s)`, "info");
+          return;
+        }
+      }
+    }
     await deleteItem(id);
     toast("Dépense supprimée", "info");
   }

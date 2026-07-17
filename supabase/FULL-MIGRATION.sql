@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.revenus (
   type TEXT NOT NULL DEFAULT 'autre',
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   recurring BOOLEAN NOT NULL DEFAULT FALSE,
+  recurring_group_id UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   synced_at TIMESTAMPTZ
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.depenses (
   envelope_id UUID REFERENCES public.envelopes(id) ON DELETE SET NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   recurring BOOLEAN NOT NULL DEFAULT FALSE,
+  recurring_group_id UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   synced_at TIMESTAMPTZ
@@ -129,6 +131,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON public.audit_log(created_at 
 -- ============================================
 -- ÉTAPE 3 : CONTRAINTES D'INTÉGRITÉ
 -- ============================================
+
+-- Ajouter recurring_group_id si elle n'existe pas encore (bases existantes)
+ALTER TABLE public.revenus ADD COLUMN IF NOT EXISTS recurring_group_id UUID;
+ALTER TABLE public.depenses ADD COLUMN IF NOT EXISTS recurring_group_id UUID;
 
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS valid_role;
 ALTER TABLE public.profiles ADD CONSTRAINT valid_role CHECK (role IN ('user', 'admin'));

@@ -135,6 +135,20 @@ export default function RevenusPage() {
   }
 
   async function handleDeleteRevenu(id: string) {
+    const rev = allRevenus.find((r) => r.id === id);
+    if (rev?.recurring && rev?.recurring_group_id) {
+      const series = allRevenus.filter((r) => r.recurring_group_id === rev.recurring_group_id);
+      if (series.length > 1) {
+        const deleteAll = window.confirm(
+          `Ce revenu est récurrent (${series.length} occurrence${series.length > 1 ? "s" : ""} au total).\n\nOK → Supprimer TOUTES les occurrences\nAnnuler → Supprimer uniquement celle-ci`
+        );
+        if (deleteAll) {
+          for (const r of series) await deleteItem(r.id);
+          toast(`${series.length} occurrence(s) supprimée(s)`, "info");
+          return;
+        }
+      }
+    }
     await deleteItem(id);
     toast("Revenu supprimé", "info");
   }
