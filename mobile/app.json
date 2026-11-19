@@ -15,8 +15,7 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.monbudget.app",
-      "supportsTablet": true,
-      "infoPlist": {}
+      "supportsTablet": true
     },
     "android": {
       "package": "com.monbudget.app",
@@ -28,8 +27,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.POST_NOTIFICATIONS",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
@@ -78,11 +76,6 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
       "eas": {
         "projectId": "2ffbda82-90e2-4855-ad6b-a5ca8bb34080"
       }
