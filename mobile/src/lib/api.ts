@@ -3,7 +3,8 @@ import { API_URL } from './config';
 
 const ACCESS_KEY = 'mb.access';
 const REFRESH_KEY = 'mb.refresh';
-const TIMEOUT_MS = 20_000;
+// L'hébergeur gratuit endort l'API après inactivité : le premier appel peut prendre ~50 s.
+const TIMEOUT_MS = 60_000;
 
 export class ApiError extends Error {
   constructor(
@@ -123,3 +124,15 @@ export const api = {
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, body ?? {}),
 };
+
+/**
+ * Réveille l'API (hébergeur gratuit en veille) dès l'ouverture de l'app, sans rien attendre :
+ * le temps que l'utilisateur lise la bienvenue, le serveur démarre.
+ */
+export function wakeServer(): void {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  fetch(API_URL + '/health', { signal: controller.signal })
+    .catch(() => {})
+    .finally(() => clearTimeout(timer));
+}

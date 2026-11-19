@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CrashScreen } from '@/components/CrashScreen';
 import { ToastProvider } from '@/components/Toast';
+import { wakeServer } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { CurrencyProvider } from '@/lib/currency';
 import { I18nProvider, useI18n } from '@/lib/i18n';
@@ -36,6 +37,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 export default wrapRoot(RootLayout);
 
 function RootLayout() {
+  useEffect(() => wakeServer(), []);
   const navigationRef = useNavigationContainerRef();
   useEffect(() => {
     if (navigationRef) navigationIntegration.registerNavigationContainer(navigationRef);
