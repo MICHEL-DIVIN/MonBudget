@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Projets séparés (NestJS, Expo) avec leur propre configuration.
+    "backend/**",
+    "mobile/**",
   ]),
 ]);
 

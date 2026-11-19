@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["**/*.test.ts"],
+    // Le backend et l'app mobile ont leurs propres tests.
+    exclude: ["node_modules/**", "backend/**", "mobile/**"],
   },
   resolve: {
     alias: {

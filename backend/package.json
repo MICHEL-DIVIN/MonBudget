@@ -1,0 +1,52 @@
+{
+  "name": "monbudget-api",
+  "version": "0.1.0",
+  "description": "API NestJS de Mon Budget Familial",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch --exec \"node --import ./dist/instrument.js\"",
+    "start:prod": "node --import ./dist/instrument.js dist/main.js",
+    "test": "vitest run",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "smoke": "node test/smoke.mjs"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "@nestjs/common": "^12.5.1",
+    "@nestjs/config": "^12.1.1",
+    "@nestjs/core": "^12.5.1",
+    "@nestjs/jwt": "^12.0.5",
+    "@nestjs/platform-express": "^12.5.1",
+    "@nestjs/throttler": "^6.8.0",
+    "@prisma/client": "^6.19.3",
+    "@sentry/nestjs": "^11.14.0",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "google-auth-library": "^11.3.4",
+    "helmet": "^8.3.0",
+    "nodemailer": "^10.6.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.13",
+    "@nestjs/testing": "^12.5.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
+    "prisma": "^6.19.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12"
+  },
+  "private": true
+}
