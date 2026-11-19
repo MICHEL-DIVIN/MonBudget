@@ -15,6 +15,7 @@ import { PushController } from './push/push.controller.js';
 import { PushService } from './push/push.service.js';
 import { SupportController } from './support/support.controller.js';
 import { SyncModule } from './sync/sync.module.js';
+import { UsersController } from './users/users.controller.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SyncModule } from './sync/sync.module.js';
     PushController,
     SupportController,
     AdminController,
+    UsersController,
   ],
   providers: [
     // Erreurs inattendues (hors HttpException 4xx) remontées à Sentry ; réponse HTTP inchangée.
