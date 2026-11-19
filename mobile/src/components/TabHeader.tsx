@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { TourTarget } from '@/lib/tour/TourTarget';
 import { useI18n } from '@/lib/i18n';
 import { useSyncStatus } from '@/lib/sync';
 import type { AppNotification } from '@/lib/types';
@@ -68,7 +69,7 @@ function useUnreadCount(): number {
 }
 
 /** En-tête des onglets : titre à gauche, état + notifications + profil à droite. */
-export function TabHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+export function TabHeader({ title, subtitle, children, tourAvatar = false }: { title: string; subtitle?: string; children?: ReactNode; /** Cet en-tête porte l'étape « Réglages » de la visite guidée (un seul à la fois). */ tourAvatar?: boolean }) {
   const { c } = useTheme();
   const { t } = useI18n();
   const { user } = useAuth();
@@ -93,9 +94,11 @@ export function TabHeader({ title, subtitle, children }: { title: string; subtit
             </View>
           ) : null}
         </PressableScale>
+        <TourTarget step="settings" active={tourAvatar}>
         <PressableScale accessibilityRole="button" accessibilityLabel={t('nav.settings')} onPress={() => router.push('/settings')} scaleTo={0.88} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.primaryFixed, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {user?.avatar_url ? <Image source={{ uri: user.avatar_url }} style={{ width: 40, height: 40 }} /> : <Text variant="label" color={c.primary}>{initial}</Text>}
         </PressableScale>
+        </TourTarget>
       </View>
       {children}
     </View>

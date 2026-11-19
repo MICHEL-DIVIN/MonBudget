@@ -47,6 +47,8 @@ model User {
   currency      String   @default("EUR")
   locale        String   @default("fr-FR")
   role          Role     @default(user)
+  // Visite guidée (product tour) déjà vue : source de vérité, le mobile n'en garde qu'un cache local.
+  hasSeenTour   Boolean  @default(false) @map("has_seen_tour")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

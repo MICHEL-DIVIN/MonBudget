@@ -27,6 +27,8 @@ interface AuthValue {
   /** Déconnexion : efface les données locales. Retourne false si des modifications non synchronisées existent et que `force` n'est pas fourni. */
   signOut: (opts?: { force?: boolean }) => Promise<boolean>;
   updateProfile: (patch: Partial<Pick<Profile, 'full_name' | 'avatar_url'>>) => Promise<void>;
+  /** Met à jour le profil en mémoire et en cache, sans appel réseau (ex. confirmation serveur déjà obtenue). */
+  patchUser: (patch: Partial<Profile>) => void;
   deleteAccount: (password?: string) => Promise<void>;
 }
 
@@ -128,6 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adopt],
   );
 
+  const patchUser = useCallback((patch: Partial<Profile>) => {
+    const current = getJsonMeta<Profile | null>(PROFILE_KEY, null);
+    if (!current) return;
+    const next = { ...current, ...patch };
+    setJsonMeta(PROFILE_KEY, next);
+    setUser(next);
+  }, []);
+
   const deleteAccount = useCallback(
     async (password?: string) => {
       await api.delete('/me', password ? { password } : {});
@@ -142,8 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthValue>(
-    () => ({ status, user, expired, login, register, loginWithGoogle, signOut, updateProfile, deleteAccount }),
-    [status, user, expired, login, register, loginWithGoogle, signOut, updateProfile, deleteAccount],
+    () => ({ status, user, expired, login, register, loginWithGoogle, signOut, updateProfile, patchUser, deleteAccount }),
+    [status, user, expired, login, register, loginWithGoogle, signOut, updateProfile, patchUser, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

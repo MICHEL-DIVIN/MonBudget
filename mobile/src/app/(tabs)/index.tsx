@@ -10,6 +10,8 @@ import { TabHeader } from '@/components/TabHeader';
 import { useTabBarSpace } from '@/components/TabBar';
 import { Button, Card, radius, SectionTitle, space, Text, useContentStyle } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { TourTarget } from '@/lib/tour/TourTarget';
+import { useProductTour } from '@/lib/tour/useProductTour';
 import { computeBudgetHealth, computeMonthlySnapshot, filterByMonth, totalDepenses, totalRevenus } from '@/lib/calculations';
 import { useCurrency } from '@/lib/currency';
 import { compareDateStrings } from '@/lib/dates';
@@ -31,6 +33,7 @@ export default function Home() {
   const { user } = useAuth();
   const deleteTx = useDeleteWithUndo();
   const [heroWidth, setHeroWidth] = useState(0);
+  useProductTour();
 
   const revenus = useStore('revenus');
   const depenses = useStore('depenses');
@@ -77,9 +80,10 @@ export default function Home() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <TabHeader title={monthName(intl, month)} subtitle={firstName ? t('home.hello', { name: firstName }) : undefined} />
+      <TabHeader title={monthName(intl, month)} subtitle={firstName ? t('home.hello', { name: firstName }) : undefined} tourAvatar />
       <ScrollView contentContainerStyle={[column, { paddingTop: space.sm, paddingBottom: tabSpace + space.lg, gap: space.xl }]} showsVerticalScrollIndicator={false}>
         {/* Reste à dépenser — le chiffre qui compte, sur un fond guilloché. */}
+        <TourTarget step="hero">
         <View onLayout={(e) => setHeroWidth(e.nativeEvent.layout.width)} style={{ backgroundColor: c.card, borderRadius: radius.xl, overflow: 'hidden' }}>
           <Guilloche width={heroWidth} height={190} color={over ? c.error + '22' : c.guilloche} />
           <View style={{ padding: space.xl, paddingBottom: space.lg, gap: space.xs }}>
@@ -107,6 +111,7 @@ export default function Home() {
             ) : null}
           </View>
         </View>
+        </TourTarget>
 
         {!hasData ? (
           <Card style={{ gap: space.md }}>

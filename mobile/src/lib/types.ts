@@ -58,6 +58,8 @@ export interface Profile {
   currency: string;
   locale: string;
   role: 'user' | 'admin';
+  /** Visite guidée déjà vue (source de vérité : la base de données). */
+  has_seen_tour: boolean;
   has_password: boolean;
 }
 

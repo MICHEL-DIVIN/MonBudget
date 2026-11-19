@@ -65,6 +65,33 @@ src/
 
 Identité « billet de banque » : encre (`#0F1626`) et papier (`#EDF0EA`), un seul accent laiton, vert pour les entrées, corail pour les sorties. Polices : Bricolage Grotesque (montants, titres) et Figtree (interface). Signature : le motif guilloché tracé derrière le « Reste à dépenser ». Les animations répondent aux actions (pression, glisser pour supprimer, jauges, montants qui défilent, toast « Annuler ») et respectent le réglage « réduire les animations » du système. Tokens dans `src/theme/theme.tsx`.
 
+## Générer l'APK (Android)
+
+L'API de production est déjà configurée dans `eas.json` (`EXPO_PUBLIC_API_URL`). Le fichier `.env` n'est **pas** envoyé à EAS : tout ce dont l'APK a besoin doit être dans `eas.json` ou dans les variables EAS.
+
+Une seule fois :
+
+```bash
+cd mobile
+npx eas-cli init     # crée le projet EAS : choisir le compte, puis il écrit extra.eas.projectId dans app.json
+# Suivi des crashs dans l'APK (le DSN n'est pas un secret, mais il reste hors du dépôt) :
+npx eas-cli env:create --name EXPO_PUBLIC_SENTRY_DSN --value "<votre DSN>" --environment preview --visibility plaintext
+```
+
+Puis, à chaque APK :
+
+```bash
+npm run build:apk    # = eas build --platform android --profile preview
+```
+
+À la première build, EAS propose de **générer un keystore** : répondez oui, et conservez-le (il signe toutes les futures mises à jour). Au bout de 10 à 20 minutes, EAS fournit un lien et un QR code pour télécharger l'`.apk` et l'installer sur le téléphone (autoriser les sources inconnues).
+
+- `preview` : APK installable directement, pour tester.
+- `production` (`npm run build:aab`) : bundle `.aab` pour le Google Play Store (compte développeur à 25 $ une fois).
+- Les notifications push serveur fonctionnent dans cet APK (Expo Go ne le permet pas) ; les rappels locaux fonctionnent partout.
+- Le plan gratuit de Render endort l'API après inactivité : l'app la réveille dès son ouverture (délai de réponse de 60 s), mais la toute première connexion peut être lente.
+- Permissions Android : réseau, notifications, vibration et accès aux photos (avatar) seulement. Micro et superposition d'écran sont bloqués.
+
 ## Écrans de toutes tailles
 
 `src/theme/layout.ts` (`useLayout()`) distingue petits téléphones (< 360 px), écrans bas (< 700 px) et tablettes (≥ 600 px) :

@@ -37,6 +37,7 @@ describe('traductions', () => {
       ...['welcome', 'currency', 'envelopes', 'done'].flatMap((k) => [`onboarding.${k}`, `onboarding.${k}Desc`]),
       ...['groceries', 'leisure', 'transport', 'gifts'].map((k) => `onboarding.sugg.${k}`),
       ...['hello', 'left', 'envelopes', 'reminders', 'offline'].flatMap((k) => [`welcome.${k}.title`, `welcome.${k}.body`]),
+      ...['hero', 'add', 'activity', 'budget', 'settings'].flatMap((k) => [`tour.${k}.title`, `tour.${k}.body`]),
     ];
     expect(expected.filter((k) => !(k in fr))).toEqual([]);
   });

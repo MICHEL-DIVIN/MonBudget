@@ -10,6 +10,7 @@ export function serializeUser(u: User) {
     currency: u.currency,
     locale: u.locale,
     role: u.role,
+    has_seen_tour: u.hasSeenTour,
     has_password: u.passwordHash !== null,
     created_at: u.createdAt.toISOString(),
     updated_at: u.updatedAt.toISOString(),

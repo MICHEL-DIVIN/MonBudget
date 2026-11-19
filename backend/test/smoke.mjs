@@ -35,6 +35,8 @@ check('register OK', r.status === 201 && r.json.access_token && r.json.refresh_t
 const session = r.json;
 check('register: pas de hash exposé', !JSON.stringify(r.json).includes('password_hash') && !('passwordHash' in r.json.user));
 
+check('register: has_seen_tour vaut false au départ', session.user.has_seen_tour === false, JSON.stringify(session.user));
+
 r = await call('POST', '/auth/register', { body: { email, password } });
 check('register: doublon refusé (409)', r.status === 409);
 
@@ -56,6 +58,17 @@ r = await call('PATCH', '/me', { token: session.access_token, body: { role: 'adm
 check('me: élévation de rôle impossible (400)', r.status === 400);
 r = await call('PATCH', '/me', { token: session.access_token, body: { currency: 'JPY' } });
 check('me: devise inconnue refusée', r.status === 400);
+
+r = await call('PATCH', '/users/me/tour-seen');
+check('tour-seen: sans jeton (401)', r.status === 401);
+r = await call('PATCH', '/users/me/tour-seen', { token: session.access_token, body: {} });
+check('tour-seen: passe le drapeau à true', r.status === 200 && r.json.has_seen_tour === true, JSON.stringify(r.json));
+r = await call('PATCH', '/users/me/tour-seen', { token: session.access_token, body: {} });
+check('tour-seen: idempotent (rejeu sans erreur)', r.status === 200 && r.json.has_seen_tour === true);
+r = await call('GET', '/me', { token: session.access_token });
+check('tour-seen: renvoyé avec le profil (GET /me)', r.json.has_seen_tour === true);
+r = await call('POST', '/auth/login', { body: { email, password } });
+check('tour-seen: renvoyé à la connexion', r.status === 200 && r.json.user.has_seen_tour === true);
 
 r = await call('GET', '/admin/stats', { token: session.access_token });
 check('admin: interdit à un utilisateur (403)', r.status === 403);

@@ -12,6 +12,7 @@ import { useI18n } from '@/lib/i18n';
 import { getNotificationPrefs, registerForPush, requestPermission, saveNotificationPrefs, scheduleReminders, unregisterPush, type NotificationPrefs } from '@/lib/notifications';
 import { monitoringEnabled, reportError } from '@/lib/monitoring';
 import { removePin } from '@/lib/pin';
+import { replayProductTour } from '@/lib/tour/useProductTour';
 import { useSecurity } from '@/lib/security';
 import { syncNow, useSyncStatus } from '@/lib/sync';
 import { errorMessage } from '@/lib/validation';
@@ -208,6 +209,7 @@ export default function SettingsScreen() {
       {/* Aide */}
       <SectionTitle>{t('settings.help')}</SectionTitle>
       <Card style={{ paddingVertical: space.sm }}>
+        <Row icon="school" title={t('settings.replayTour')} subtitle={t('settings.replayTourHint')} onPress={replayProductTour} />
         <Row icon="support-agent" title={t('support.title')} onPress={() => router.push('/support')} />
         {user?.role === 'admin' ? <Row icon="admin-panel-settings" title={t('admin.title')} onPress={() => router.push('/admin')} /> : null}
         {__DEV__ && monitoringEnabled ? (
