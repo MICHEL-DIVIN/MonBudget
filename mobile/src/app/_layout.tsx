@@ -7,7 +7,7 @@ import { Figtree_500Medium } from '@expo-google-fonts/figtree/500Medium';
 import { Figtree_600SemiBold } from '@expo-google-fonts/figtree/600SemiBold';
 import { Figtree_700Bold } from '@expo-google-fonts/figtree/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack, useNavigationContainerRef, type ErrorBoundaryProps } from 'expo-router';
+import { router, Stack, useNavigationContainerRef, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { CopilotProvider } from 'react-native-copilot';
@@ -86,14 +86,20 @@ function Navigation() {
   const { c, scheme } = useTheme();
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
+  const segments = useSegments();
+  const signedIn = status === 'signedIn' && !expired;
 
   useEffect(() => {
     if (status !== 'loading') SplashScreen.hideAsync().catch(() => {});
   }, [status]);
 
-  if (status === 'loading') return null;
+  // Non connecté et hors des écrans de connexion (ex. premier lancement sur « / ») : direction la bienvenue.
+  useEffect(() => {
+    if (status === 'loading' || signedIn) return;
+    if (segments[0] !== '(auth)') router.replace('/welcome');
+  }, [status, signedIn, segments]);
 
-  const signedIn = status === 'signedIn' && !expired;
+  if (status === 'loading') return null;
   // Feuilles : carte native sur iOS, glissement depuis le bas sur Android.
   const sheet = { presentation: 'modal' as const, animation: Platform.OS === 'android' ? ('slide_from_bottom' as const) : undefined };
 
@@ -147,6 +153,8 @@ function Navigation() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
         </Stack.Protected>
+        {/* Adresse inconnue (ex. « / » au premier lancement, non connecté) : redirection immédiate, sans en-tête. */}
+        <Stack.Screen name="+not-found" options={{ headerShown: false, animation: 'none' }} />
       </Stack>
       </CopilotProvider>
     </>
