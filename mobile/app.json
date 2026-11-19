@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Mon Budget",
+    "slug": "monbudget",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "monbudget",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0a0a0f",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.monbudget.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.monbudget.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0f",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0f",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#8b5cf6"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Mon Budget accède à vos photos pour choisir votre photo de profil.",
+          "cameraPermission": "Mon Budget utilise l'appareil photo pour prendre votre photo de profil."
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://de.sentry.io/",
+          "organization": "VOTRE-ORGANISATION-SENTRY",
+          "project": "monbudget-mobile"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
