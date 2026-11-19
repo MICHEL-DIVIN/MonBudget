@@ -21,5 +21,6 @@ RUN npm i --no-save prisma@6 && npx prisma generate
 COPY --from=build /app/dist ./dist
 USER node
 EXPOSE 3000
-# Applique les migrations puis démarre l'API.
-CMD ["sh", "-c", "npx prisma migrate deploy && node --import ./dist/instrument.js dist/main.js"]
+# Applique les migrations (avec limite de temps) puis démarre l'API : voir scripts/start.sh
+COPY scripts ./scripts
+CMD ["sh", "./scripts/start.sh"]
