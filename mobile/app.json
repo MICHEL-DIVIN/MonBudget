@@ -7,20 +7,20 @@
     "icon": "./assets/images/icon.png",
     "scheme": "monbudget",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0a0a0f",
+    "backgroundColor": "#0F1626",
     "platforms": [
       "ios",
       "android"
     ],
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.monbudget.app",
       "supportsTablet": true
     },
     "android": {
       "package": "com.monbudget.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0a0a0f",
+        "backgroundColor": "#0F1626",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -40,9 +40,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0a0a0f",
+          "backgroundColor": "#0F1626",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200
         }
       ],
       "expo-secure-store",
