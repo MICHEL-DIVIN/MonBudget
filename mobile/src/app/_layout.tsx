@@ -10,6 +10,8 @@ import { useFonts } from 'expo-font';
 import { Stack, useNavigationContainerRef, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { CopilotProvider } from 'react-native-copilot';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,6 +25,8 @@ import { I18nProvider, useI18n } from '@/lib/i18n';
 import { initMonitoring, navigationIntegration, wrapRoot } from '@/lib/monitoring';
 import { SecurityProvider } from '@/lib/security';
 import { SyncTriggers } from '@/lib/triggers';
+import { NoStepNumber, roundedSpotlight, TourTooltip } from '@/lib/tour/TourTooltip';
+import { radius, space } from '@/components/ui';
 import { font, ThemeProvider, useTheme } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -81,6 +85,7 @@ function Navigation() {
   const { status, expired } = useAuth();
   const { c, scheme } = useTheme();
   const { t } = useI18n();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (status !== 'loading') SplashScreen.hideAsync().catch(() => {});
@@ -96,6 +101,22 @@ function Navigation() {
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       {signedIn ? <SyncTriggers /> : null}
+      <CopilotProvider
+        overlay="svg"
+        animated={!reduceMotion}
+        animationDuration={350}
+        backdropColor="rgba(5, 9, 18, 0.82)"
+        arrowColor={c.card}
+        arrowSize={12}
+        margin={8}
+        // Expo 58 dessine l'app « bord à bord » sur Android : les coordonnées incluent déjà la barre d'état.
+        // Si le spotlight apparaît décalé verticalement sur Android, passer cette valeur à false.
+        androidStatusBarVisible
+        tooltipComponent={TourTooltip}
+        stepNumberComponent={NoStepNumber}
+        svgMaskPath={roundedSpotlight}
+        tooltipStyle={{ backgroundColor: c.card, borderRadius: radius.lg, padding: space.lg, minWidth: 280 }}
+      >
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: c.background },
@@ -127,6 +148,7 @@ function Navigation() {
           <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
         </Stack.Protected>
       </Stack>
+      </CopilotProvider>
     </>
   );
 }

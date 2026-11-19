@@ -15,9 +15,11 @@ interface SecurityValue {
   pinEnabled: boolean;
   /** À appeler après activation / désactivation du PIN (sans verrouiller immédiatement). */
   setPinEnabled: (v: boolean) => void;
+  /** L'écran de verrouillage est affiché : rien d'autre ne doit s'ouvrir par-dessus. */
+  locked: boolean;
 }
 
-const SecurityContext = createContext<SecurityValue>({ pinEnabled: false, setPinEnabled: () => {} });
+const SecurityContext = createContext<SecurityValue>({ pinEnabled: false, setPinEnabled: () => {}, locked: false });
 
 export const useSecurity = () => useContext(SecurityContext);
 
@@ -64,9 +66,9 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     if (!v) setLocked(false);
   }, []);
 
-  const value = useMemo(() => ({ pinEnabled, setPinEnabled }), [pinEnabled, setPinEnabled]);
   // Tant qu'on ne sait pas si un PIN existe, on masque le contenu (évite un éclair de données avant le verrou).
   const showLock = status === 'signedIn' && (!ready || (pinEnabled && locked));
+  const value = useMemo(() => ({ pinEnabled, setPinEnabled, locked: showLock }), [pinEnabled, setPinEnabled, showLock]);
 
   return (
     <SecurityContext.Provider value={value}>

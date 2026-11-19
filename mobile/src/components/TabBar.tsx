@@ -5,6 +5,8 @@ import { useState, type ComponentProps } from 'react';
 import { Pressable, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TourTarget } from '@/lib/tour/TourTarget';
+import type { TourStepName } from '@/lib/tour/tourSteps';
 import { useLayout } from '@/theme/layout';
 import { motion, useTheme } from '@/theme/theme';
 import { TAB_BAR_HEIGHT } from './Toast';
@@ -19,6 +21,9 @@ const ICONS: Record<string, [IconName, IconName]> = {
   budget: ['wallet-outline', 'wallet'],
   analyse: ['chart-box-outline', 'chart-box'],
 };
+
+/** Onglets désignés par la visite guidée. */
+const TOUR_STEP_BY_ROUTE: Record<string, TourStepName | undefined> = { transactions: 'activity', budget: 'budget' };
 
 const MARGIN = 16;
 const GAP = 10;
@@ -87,9 +92,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const label = (descriptors[route.key].options.title ?? route.name) as string;
-          return (
+          const tab = (
             <Tab
-              key={route.key}
               label={label}
               icons={ICONS[route.name] ?? ['circle-outline', 'circle']}
               focused={focused}
@@ -102,10 +106,22 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
               }}
             />
           );
+          const step = TOUR_STEP_BY_ROUTE[route.name];
+          return step ? (
+            <TourTarget key={route.key} step={step} style={{ flex: 1 }}>
+              {tab}
+            </TourTarget>
+          ) : (
+            <View key={route.key} style={{ flex: 1 }}>
+              {tab}
+            </View>
+          );
         })}
       </View>
 
-      <AddButton shadow={shadow} />
+      <TourTarget step="add">
+        <AddButton shadow={shadow} />
+      </TourTarget>
     </View>
   );
 }
@@ -126,7 +142,7 @@ function Tab({ label, icons, focused, onPress }: { label: string; icons: [IconNa
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
       onPress={onPress}
-      style={{ flex: 1, height: TAB_BAR_HEIGHT, alignItems: 'center', justifyContent: 'center' }}
+      style={{ height: TAB_BAR_HEIGHT, alignItems: 'center', justifyContent: 'center' }}
     >
       <Animated.View style={iconStyle}>
         <MaterialCommunityIcons name={focused ? icons[1] : icons[0]} size={25} color={focused ? c.primary : c.textMuted} />
