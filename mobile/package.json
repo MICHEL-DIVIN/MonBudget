@@ -55,8 +55,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:apk": "eas build --platform android --profile preview",
-    "build:aab": "eas build --platform android --profile production"
+    "build:apk": "node scripts/eas-build.mjs preview",
+    "build:aab": "node scripts/eas-build.mjs production"
   },
   "private": true
 }

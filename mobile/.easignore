@@ -1,0 +1,33 @@
+# Fichiers NON envoyés aux serveurs de build EAS (remplace .gitignore pour EAS).
+# EAS est lancé sans Git (EAS_NO_VCS=1) : c'est ce fichier qui fait foi.
+
+# Dépendances et caches (réinstallés par EAS)
+node_modules/
+.expo/
+dist/
+web-build/
+.metro-health-check*
+
+# Dossiers natifs : régénérés par EAS à partir d'app.json
+/android
+/ios
+.kotlin/
+
+# Secrets et réglages locaux : l'APK prend sa configuration dans eas.json et les variables EAS
+.env
+.env.local
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Outils de développement
+.git/
+.vscode/
+.claude/
+*.tsbuildinfo
+npm-debug.*
+expo-env.d.ts
+.DS_Store
